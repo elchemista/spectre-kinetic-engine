@@ -1,0 +1,21 @@
+[package]
+name = "spectre-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI for Spectre Dispatcher: train, build-registry, and plan commands"
+
+[[bin]]
+name = "spectre-dispatcher"
+path = "src/main.rs"
+
+[dependencies]
+spectre-core = { path = "../spectre-core" }
+spectre-train = { path = "../spectre-train" }
+tokenizers = { workspace = true }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

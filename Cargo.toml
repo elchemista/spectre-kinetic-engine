@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/spectre-core",
+    "crates/spectre-train",
+    "crates/spectre-cli",
+]
+
+[workspace.lints.clippy]
+redundant_clone = "deny"
+large_enum_variant = "warn"
+needless_collect = "warn"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+
+[workspace.dependencies]
+tokenizers = { version = "0.21", default-features = false, features = ["onig", "progressbar", "esaxx_fast"] }
+ndarray = "0.16"
+half = { version = "2.0", features = ["num-traits"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+anyhow = "1.0"
+clap = { version = "4.0", features = ["derive"] }

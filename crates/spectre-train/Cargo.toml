@@ -1,0 +1,22 @@
+[package]
+name = "spectre-train"
+version = "0.1.0"
+edition = "2021"
+description = "Training library for Spectre Dispatcher: ONNX teacher distillation to static token embeddings"
+
+[dependencies]
+spectre-core = { path = "../spectre-core" }
+tokenizers = { workspace = true }
+ndarray = { workspace = true }
+half = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+ort = { version = "=2.0.0-rc.9", default-features = false, features = ["load-dynamic"] }
+
+[dev-dependencies]
+approx = "0.5"
+tempfile = "3.0"
+
+[lints]
+workspace = true
