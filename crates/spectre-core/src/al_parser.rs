@@ -7,6 +7,7 @@
 //! - `KEY=value` parsing from the WITH: section
 
 use crate::types::ParsedSlot;
+use std::collections::HashMap;
 
 /// Result of parsing an AL text string.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,6 +47,22 @@ pub fn parse_al(al_text: &str) -> AlParsed {
     AlParsed { action_text, slot_keys }
 }
 
+/// Parse AL and also extract literal KEY=value pairs (including quoted values) from the WITH section.
+/// Returns the usual AlParsed and a lowercase key -> value map for any literal assignments found.
+pub fn parse_al_and_slots(al_text: &str) -> (AlParsed, HashMap<String, String>) {
+    let (action_part, with_part) = split_on_with(al_text);
+
+    let mut slot_keys = Vec::new();
+    let action_text = extract_placeholders(action_part, &mut slot_keys);
+
+    let mut kv = HashMap::new();
+    if let Some(with_section) = with_part {
+        parse_with_section_values(with_section, &mut slot_keys, &mut kv);
+    }
+
+    (AlParsed { action_text, slot_keys }, kv)
+}
+
 /// Split on the first occurrence of `WITH:` or `WITH ` (case-insensitive).
 /// Returns (before, Some(after)) or (full_text, None).
 fn split_on_with(text: &str) -> (&str, Option<&str>) {
@@ -60,6 +77,116 @@ fn split_on_with(text: &str) -> (&str, Option<&str>) {
         (before, Some(after))
     } else {
         (text.trim(), None)
+    }
+}
+
+/// Parse KEY=value entries from the WITH: section, supporting quoted values with spaces and placeholders.
+fn parse_with_section_values(section: &str, slots: &mut Vec<ParsedSlot>, kv_out: &mut HashMap<String, String>) {
+    let bytes = section.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        // skip whitespace
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            break;
+        }
+
+        // parse key until '='
+        let key_start = i;
+        while i < bytes.len() && bytes[i] != b'=' && !bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        // allow whitespace before '='
+        let key_end = i;
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if i >= bytes.len() || bytes[i] != b'=' {
+            // Not a key=value, skip token
+            while i < bytes.len() && !bytes[i].is_ascii_whitespace() {
+                i += 1;
+            }
+            continue;
+        }
+        // consume '='
+        i += 1;
+
+        let key = std::str::from_utf8(&bytes[key_start..key_end])
+            .unwrap_or("")
+            .trim()
+            .to_lowercase();
+        if key.is_empty() {
+            continue;
+        }
+
+        // skip whitespace before value
+        while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            break;
+        }
+
+        // parse value
+        let (value, is_placeholder) = if bytes[i] == b'"' {
+            // quoted string
+            i += 1; // skip opening quote
+            let val_start = i;
+            while i < bytes.len() && bytes[i] != b'"' {
+                i += 1;
+            }
+            let val_end = i.min(bytes.len());
+            let val = std::str::from_utf8(&bytes[val_start..val_end])
+                .unwrap_or("")
+                .to_string();
+            if i < bytes.len() && bytes[i] == b'"' {
+                i += 1;
+            }
+            (val, false)
+        } else if bytes[i] == b'{' {
+            // placeholder {slot}
+            i += 1; // skip '{'
+            let val_start = i;
+            while i < bytes.len() && bytes[i] != b'}' {
+                i += 1;
+            }
+            let val_end = i.min(bytes.len());
+            let slot_key = std::str::from_utf8(&bytes[val_start..val_end])
+                .unwrap_or("")
+                .trim()
+                .to_lowercase();
+            if i < bytes.len() && bytes[i] == b'}' {
+                i += 1;
+            }
+            (slot_key, true)
+        } else {
+            // unquoted token until whitespace
+            let val_start = i;
+            while i < bytes.len() && !bytes[i].is_ascii_whitespace() {
+                i += 1;
+            }
+            let val_end = i.min(bytes.len());
+            let val = std::str::from_utf8(&bytes[val_start..val_end])
+                .unwrap_or("")
+                .to_string();
+            (val, false)
+        };
+
+        // record slot key
+        let slot_key = if is_placeholder { value.clone() } else { key.clone() };
+        if !slots.iter().any(|s| s.key == slot_key) {
+            slots.push(ParsedSlot {
+                key: slot_key,
+                placeholder: is_placeholder,
+            });
+        }
+        // record value only for literal (non-placeholder)
+        if !is_placeholder {
+            kv_out.insert(key, value);
+        }
+        // continue loop (i already at end of value)
     }
 }
 
@@ -83,10 +210,7 @@ fn extract_placeholders(text: &str, slots: &mut Vec<ParsedSlot>) -> String {
             if found_close && !name.is_empty() {
                 let key = name.trim().to_lowercase();
                 if !slots.iter().any(|s| s.key == key) {
-                    slots.push(ParsedSlot {
-                        key,
-                        placeholder: true,
-                    });
+                    slots.push(ParsedSlot { key, placeholder: true });
                 }
                 result.push_str(name.trim());
             } else {
@@ -205,5 +329,35 @@ mod tests {
         assert_eq!(result.slot_keys.len(), 2);
         assert_eq!(result.slot_keys[0].key, "title");
         assert_eq!(result.slot_keys[1].key, "text");
+    }
+
+    #[test]
+    fn parse_al_and_slots_should_extract_quoted_values() {
+        let (parsed, kv) = parse_al_and_slots(
+            "WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE=\"New Day\" TEXT=\"Today i want to speak about ...\"",
+        );
+        assert_eq!(parsed.action_text, "WRITE NEW BLOG POST FOR elchemista.com");
+        assert!(parsed.slot_keys.iter().any(|s| s.key == "title" && !s.placeholder));
+        assert!(parsed.slot_keys.iter().any(|s| s.key == "text" && !s.placeholder));
+        assert_eq!(kv.get("title").map(|s| s.as_str()), Some("New Day"));
+        assert_eq!(
+            kv.get("text").map(|s| s.as_str()),
+            Some("Today i want to speak about ...")
+        );
+    }
+
+    #[test]
+    fn parse_al_and_slots_should_extract_unquoted_and_placeholders() {
+        let (parsed, kv) = parse_al_and_slots("DO THING WITH: MODE=fast COUNT=10 KEY={slot}");
+        // action text preserved
+        assert_eq!(parsed.action_text, "DO THING");
+        // slots include mode/count as literals and slot as placeholder
+        assert!(parsed.slot_keys.iter().any(|s| s.key == "mode" && !s.placeholder));
+        assert!(parsed.slot_keys.iter().any(|s| s.key == "count" && !s.placeholder));
+        assert!(parsed.slot_keys.iter().any(|s| s.key == "slot" && s.placeholder));
+        // kv contains only literal assignments
+        assert_eq!(kv.get("mode").map(|s| s.as_str()), Some("fast"));
+        assert_eq!(kv.get("count").map(|s| s.as_str()), Some("10"));
+        assert!(!kv.contains_key("slot"));
     }
 }

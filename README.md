@@ -61,7 +61,8 @@ The embedding table is distilled once from a teacher model (e.g. all-MiniLM-L6-v
 
 - **spectre-core** — AL parser, static embedder, cosine similarity, slot→param matching, registry builder, `SpectreDispatcher` planner.
 - **spectre-train** — Corpus parsing, ONNX teacher wrapper, distillation loop, pack writer.
-- **spectre-kinetic** — CLI with `train`, `build-registry`, and `plan` subcommands.
+- **spectre-kinetic** — CLI with `train`, `build-registry`, `plan`, and `extract-dict` subcommands.
+- **spectre-ffi** — C ABI library and optional Rustler NIF bindings for Elixir.
 
 All crates are deterministic and dependency-light.
 
@@ -276,21 +277,80 @@ Example output:
   "version": 1,
   "tools": [
     {
-      "id": "Blog.write/2",
-      "module": "Blog",
-      "name": "write",
+      "id": "Elchemista.Blog.create_post/2",
+      "module": "Elchemista.Blog",
+      "name": "create_post",
       "arity": 2,
-      "doc": "Writes a blog post",
-      "spec": "title: string, body: string",
+      "doc": "Creates a new blog post on elchemista.com with a given title and content body",
+      "spec": "create_post(title :: String.t(), body :: String.t()) :: {:ok, Post.t()} | {:error, term()}",
       "args": [
-        {"name": "title", "type": "string", "required": true, "aliases": ["subject"]},
-        {"name": "body",  "type": "string", "required": true}
+        {"name": "title", "type": "String.t()", "required": true, "aliases": ["headline", "subject"]},
+        {"name": "body",  "type": "String.t()", "required": true, "aliases": ["content", "text", "post_body"]}
       ],
-      "examples": ["WRITE POST WITH title={title} body={body}"]
+      "examples": ["WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"]
     }
   ]
 }
 ```
+
+---
+
+## Extracting a Dictionary for Agents
+
+`extract-dict` generates a compact `DICTIONARY.txt` in three lines for zero/low-shot prompts:
+
+- Line 1: Uppercase tokens — seed words (from `--seed`) + most frequent words from corpus/registry, space-separated.
+- Line 2: Slot keys — lowercase slot names, space-separated.
+- Line 3: Examples — AL examples joined by ` | `.
+
+Examples:
+
+```bash
+spectre-kinetic extract-dict \
+  --corpus combined_corpus.jsonl \
+  --out DICTIONARY.txt
+
+spectre-kinetic extract-dict \
+  --corpus combined_corpus.jsonl \
+  --registry tools.json \
+  --seed example/AL_DICTIONARY.txt \
+  --out DICTIONARY.txt \
+  --top-n 800
+```
+
+Notes:
+
+- `--seed` is optional. Provide a whitespace- or line-separated wordlist.
+- `--top-n` caps uppercase common tokens. Slot keys and examples are appended separately.
+
+---
+
+## FFI Bindings (C ABI + Elixir Rustler)
+
+Build the shared library:
+
+```bash
+cargo build -p spectre-ffi --release
+# → target/release/libspectre_ffi.so (Linux), .dylib (macOS), .dll (Windows)
+```
+
+C ABI (JSON in/out):
+
+```c
+struct Spectre; // opaque
+struct Spectre* spectre_open(const char* model_dir, const char* registry_mcr, char** err_msg);
+void spectre_close(struct Spectre* h);
+int spectre_plan_json(struct Spectre* h, const char* request_json, char** out_plan_json, char** err_msg);
+int spectre_plan_al(struct Spectre* h, const char* al_text, char** out_plan_json, char** err_msg);
+void spectre_free_string(char* p);
+char* spectre_version(void);
+```
+
+Elixir (Rustler feature): add a Rustler crate entry pointing to `crates/spectre-ffi` with `features = ["rustler"]`. Exposed functions:
+
+- `Spectre.FFI.open(model_dir, registry_mcr) :: resource`
+- `Spectre.FFI.plan_json(handle, request_json) :: String`
+- `Spectre.FFI.plan_al(handle, al_text) :: String`
 
 ---
 
@@ -347,6 +407,7 @@ echo '{"al":"INSTALL PACKAGE nginx","slots":{"package":"nginx"}}' | \
 | `crates/spectre-core` | AL parser, embedder, similarity, matching, registry, planner |
 | `crates/spectre-train` | Corpus parsing, ONNX teacher wrapper, distillation, pack writer |
 | `crates/spectre-cli` | `spectre-kinetic` binary |
+| `crates/spectre-ffi` | C ABI library and optional Rustler NIF bindings |
 
 ## License
 

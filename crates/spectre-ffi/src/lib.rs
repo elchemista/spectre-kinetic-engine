@@ -2,10 +2,64 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 
-struct FfiHandle {
+pub struct FfiHandle {
     dispatcher: spectre_core::SpectreDispatcher,
 }
 
+/// # Safety
+///
+/// - `handle` must be a valid pointer returned by `spectre_open`.
+/// - `al_text` must be a valid, NUL-terminated UTF-8 string containing the AL statement.
+/// - `out_plan_json` and `err_out` may be null; when non-null, on success/failure they will be set
+///   to newly allocated C strings which must be freed by the caller with `spectre_free_string`.
+#[no_mangle]
+pub unsafe extern "C" fn spectre_plan_al(
+    handle: *mut FfiHandle,
+    al_text: *const c_char,
+    out_plan_json: *mut *mut c_char,
+    err_out: *mut *mut c_char,
+) -> i32 {
+    if handle.is_null() || al_text.is_null() {
+        set_err(err_out, "null argument");
+        return 1;
+    }
+    let handle = &*handle;
+
+    let al = match CStr::from_ptr(al_text).to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            set_err(err_out, "invalid UTF-8 for al_text");
+            return 2;
+        }
+    };
+
+    let res = (|| -> anyhow::Result<String> {
+        let plan = handle.dispatcher.plan_al(al, None, None, None);
+        let out = serde_json::to_string(&plan)?;
+        Ok(out)
+    })();
+
+    match res {
+        Ok(json) => {
+            if !out_plan_json.is_null() {
+                let c = CString::new(json).unwrap_or_else(|_| CString::new("{}").unwrap());
+                *out_plan_json = c.into_raw();
+            }
+            0
+        }
+        Err(e) => {
+            set_err(err_out, &format!("{}", e));
+            3
+        }
+    }
+}
+
+/// # Safety
+///
+/// - `model_dir` and `registry_mcr` must be valid, NUL-terminated UTF-8 strings.
+/// - `err_out` may be null; when non-null, on error it will be set to a newly allocated C string
+///   that must be freed by the caller with `spectre_free_string`.
+/// - Returns a non-null opaque pointer on success. The handle must later be released with `spectre_close`.
 #[no_mangle]
 pub unsafe extern "C" fn spectre_open(
     model_dir: *const c_char,
@@ -48,6 +102,10 @@ pub unsafe extern "C" fn spectre_open(
     }
 }
 
+/// # Safety
+///
+/// - `handle` must be a pointer previously returned by `spectre_open` or null.
+/// - After this call, `handle` must not be used again.
 #[no_mangle]
 pub unsafe extern "C" fn spectre_close(handle: *mut FfiHandle) {
     if handle.is_null() {
@@ -56,6 +114,12 @@ pub unsafe extern "C" fn spectre_close(handle: *mut FfiHandle) {
     let _boxed: Box<FfiHandle> = Box::from_raw(handle);
 }
 
+/// # Safety
+///
+/// - `handle` must be a valid pointer returned by `spectre_open`.
+/// - `request_json` must be a valid, NUL-terminated UTF-8 string containing a `PlanRequest` JSON.
+/// - `out_plan_json` and `err_out` may be null; when non-null, on success/failure they will be set
+///   to newly allocated C strings which must be freed by the caller with `spectre_free_string`.
 #[no_mangle]
 pub unsafe extern "C" fn spectre_plan_json(
     handle: *mut FfiHandle,
@@ -99,6 +163,11 @@ pub unsafe extern "C" fn spectre_plan_json(
     }
 }
 
+/// # Safety
+///
+/// - `ptr` must be a pointer previously returned by this library (e.g., `spectre_version`,
+///   `spectre_plan_json` via its output pointer), or null.
+/// - Passing any other pointer is undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn spectre_free_string(ptr: *mut c_char) {
     if !ptr.is_null() {
@@ -126,7 +195,7 @@ mod nif {
 
     struct NifHandle(Mutex<FfiHandle>);
 
-    rustler::init!("Elixir.Spectre.FFI", [open, plan_json], load = on_load);
+    rustler::init!("Elixir.Spectre.FFI", [open, plan_json, plan_al], load = on_load);
 
     fn on_load(env: Env, _info: Term) -> bool {
         rustler::resource!(NifHandle, env);
@@ -145,11 +214,17 @@ mod nif {
 
     #[rustler::nif(schedule = "DirtyCpu")]
     fn plan_json(handle: ResourceArc<NifHandle>, request_json: String) -> NifResult<String> {
-        let request: spectre_core::PlanRequest = serde_json::from_str(&request_json)
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
+        let request: spectre_core::PlanRequest =
+            serde_json::from_str(&request_json).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
         let h = handle.0.lock().unwrap();
         let plan = h.dispatcher.plan(&request);
-        serde_json::to_string(&plan)
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
+        serde_json::to_string(&plan).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
+    }
+
+    #[rustler::nif(schedule = "DirtyCpu")]
+    fn plan_al(handle: ResourceArc<NifHandle>, al_text: String) -> NifResult<String> {
+        let h = handle.0.lock().unwrap();
+        let plan = h.dispatcher.plan_al(&al_text, None, None, None);
+        serde_json::to_string(&plan).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
     }
 }

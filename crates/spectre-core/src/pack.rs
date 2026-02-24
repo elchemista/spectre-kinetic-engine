@@ -46,8 +46,7 @@ fn load_tokenizer(pack_dir: &Path) -> Result<Tokenizer, CoreError> {
 /// Read `token_embeddings.bin` as raw little-endian f16 and convert to f32.
 fn load_embeddings(pack_dir: &Path, meta: &PackMetadata) -> Result<Vec<f32>, CoreError> {
     let path = pack_dir.join("token_embeddings.bin");
-    let raw =
-        std::fs::read(&path).map_err(|e| CoreError::PackLoad(format!("cannot read {}: {e}", path.display())))?;
+    let raw = std::fs::read(&path).map_err(|e| CoreError::PackLoad(format!("cannot read {}: {e}", path.display())))?;
 
     if raw.len() % 2 != 0 {
         return Err(CoreError::PackLoad(format!(
@@ -64,7 +63,7 @@ fn load_embeddings(pack_dir: &Path, meta: &PackMetadata) -> Result<Vec<f32>, Cor
         })
         .collect();
 
-    if meta.dim > 0 && floats.len() % meta.dim != 0 {
+    if meta.dim > 0 && !floats.len().is_multiple_of(meta.dim) {
         return Err(CoreError::DimensionMismatch {
             expected: meta.dim,
             actual: floats.len(),

@@ -1,9 +1,10 @@
 //! Spectre Dispatcher CLI.
 //!
-//! Provides three subcommands:
+//! Provides four subcommands:
 //! - `train`: Distill a static embedding pack from an ONNX teacher model
 //! - `build-registry`: Compile a tool registry JSON into a binary .mcr file
 //! - `plan`: Read a plan request from stdin and output a call plan JSON
+//! - `extract-dict`: Build a compact DICTIONARY.txt from a corpus and optional registry
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -150,7 +151,7 @@ fn cmd_train(
     let config = spectre_train::DistillConfig {
         max_len,
         dim,
-        apply_zipf: apply_zipf,
+        apply_zipf,
         ..Default::default()
     };
 

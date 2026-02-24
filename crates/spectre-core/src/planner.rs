@@ -12,6 +12,13 @@ use crate::types::{CallPlan, PlanRequest, PlanStatus};
 use ndarray::Array2;
 use std::collections::HashMap;
 
+/// Planning context bundled to satisfy clippy argument count limits.
+struct PlanCtx {
+    active_tool_threshold: f32,
+    active_mapping_threshold: f32,
+    candidates: Vec<crate::types::CandidateTool>,
+}
+
 /// Top-level API for Spectre Dispatcher.
 ///
 /// Holds a loaded model pack (embedder) and compiled registry, and exposes
@@ -93,14 +100,45 @@ impl SpectreDispatcher {
         // 5. Slot-to-param matching
         if parsed.slot_keys.is_empty() || tool.args.is_empty() {
             return self.build_result_no_slots(
-                tool, confidence, &request.slots, active_tool_threshold, active_mapping_threshold, eval_candidates
+                tool,
+                confidence,
+                &request.slots,
+                active_tool_threshold,
+                active_mapping_threshold,
+                eval_candidates,
             );
         }
 
         let assignment = self.match_slots_to_params(tool, &parsed, &request.slots, active_mapping_threshold);
-        self.build_result(
-            tool, confidence, assignment, &request.slots, active_tool_threshold, active_mapping_threshold, eval_candidates
-        )
+        let ctx = PlanCtx {
+            active_tool_threshold,
+            active_mapping_threshold,
+            candidates: eval_candidates,
+        };
+        self.build_result(tool, confidence, assignment, &request.slots, ctx)
+    }
+
+    /// Convenience: plan directly from a raw AL string, auto-extracting slot values from the WITH section.
+    ///
+    /// - `al_text`: the Action Language string (may contain placeholders or KEY=value/KEY="quoted value")
+    /// - `top_k`: optional number of candidates to consider (default 5)
+    /// - `tool_threshold` / `mapping_threshold`: optional threshold overrides
+    pub fn plan_al(
+        &self,
+        al_text: &str,
+        top_k: Option<usize>,
+        tool_threshold: Option<f32>,
+        mapping_threshold: Option<f32>,
+    ) -> CallPlan {
+        let (_parsed, kv) = al_parser::parse_al_and_slots(al_text);
+        let req = crate::types::PlanRequest {
+            al: al_text.to_string(),
+            slots: kv,
+            top_k: top_k.unwrap_or(5),
+            tool_threshold,
+            mapping_threshold,
+        };
+        self.plan(&req)
     }
 
     /// Match slot keys to tool params using embedding similarity.
@@ -119,7 +157,10 @@ impl SpectreDispatcher {
         let slot_vecs = self.embedder.encode_batch(&slot_refs);
 
         // Extract precomputed param embeddings for this tool
-        let param_slice = self.registry.param_embeddings.slice(ndarray::s![param_start..param_end, ..]);
+        let param_slice = self
+            .registry
+            .param_embeddings
+            .slice(ndarray::s![param_start..param_end, ..]);
         let param_vecs: Vec<Vec<f32>> = param_slice.rows().into_iter().map(|r| r.to_vec()).collect();
 
         // Build similarity matrix [num_slots x num_params]
@@ -192,9 +233,7 @@ impl SpectreDispatcher {
         confidence: f32,
         assignment: Result<SlotAssignment, crate::error::PlanError>,
         slots: &HashMap<String, String>,
-        active_tool_threshold: f32,
-        active_mapping_threshold: f32,
-        candidates: Vec<crate::types::CandidateTool>,
+        ctx: PlanCtx,
     ) -> CallPlan {
         match assignment {
             Err(crate::error::PlanError::MissingArgs { missing }) => CallPlan {
@@ -204,9 +243,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing,
                 notes: Vec::new(),
-                active_tool_threshold,
-                active_mapping_threshold,
-                candidates,
+                active_tool_threshold: ctx.active_tool_threshold,
+                active_mapping_threshold: ctx.active_mapping_threshold,
+                candidates: ctx.candidates,
             },
             Err(crate::error::PlanError::AmbiguousMapping { details }) => CallPlan {
                 status: PlanStatus::AmbiguousMapping,
@@ -215,9 +254,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing: Vec::new(),
                 notes: vec![details],
-                active_tool_threshold,
-                active_mapping_threshold,
-                candidates,
+                active_tool_threshold: ctx.active_tool_threshold,
+                active_mapping_threshold: ctx.active_mapping_threshold,
+                candidates: ctx.candidates,
             },
             Err(_) => CallPlan {
                 status: PlanStatus::NoTool,
@@ -226,9 +265,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing: Vec::new(),
                 notes: vec!["unexpected error during matching".into()],
-                active_tool_threshold,
-                active_mapping_threshold,
-                candidates,
+                active_tool_threshold: ctx.active_tool_threshold,
+                active_mapping_threshold: ctx.active_mapping_threshold,
+                candidates: ctx.candidates,
             },
             Ok(assignment) => {
                 // Build args by mapping slot values through the assignment
@@ -255,9 +294,9 @@ impl SpectreDispatcher {
                         args: Some(args),
                         missing,
                         notes: Vec::new(),
-                        active_tool_threshold,
-                        active_mapping_threshold,
-                        candidates,
+                        active_tool_threshold: ctx.active_tool_threshold,
+                        active_mapping_threshold: ctx.active_mapping_threshold,
+                        candidates: ctx.candidates,
                     };
                 }
 
@@ -273,9 +312,9 @@ impl SpectreDispatcher {
                     args: Some(args),
                     missing: Vec::new(),
                     notes,
-                    active_tool_threshold,
-                    active_mapping_threshold,
-                    candidates,
+                    active_tool_threshold: ctx.active_tool_threshold,
+                    active_mapping_threshold: ctx.active_mapping_threshold,
+                    candidates: ctx.candidates,
                 }
             }
         }
