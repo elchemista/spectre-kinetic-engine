@@ -5,7 +5,7 @@ edition = "2021"
 description = "CLI for Spectre Dispatcher: train, build-registry, and plan commands"
 
 [[bin]]
-name = "spectre-dispatcher"
+name = "spectre-kinetic"
 path = "src/main.rs"
 
 [dependencies]

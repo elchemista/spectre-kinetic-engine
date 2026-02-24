@@ -32,7 +32,7 @@ impl SpectreDispatcher {
             embedder,
             registry,
             tool_threshold: 0.3,
-            mapping_threshold: 0.4,
+            mapping_threshold: 0.35,
         }
     }
 
@@ -50,6 +50,9 @@ impl SpectreDispatcher {
 
     /// Execute a plan request: parse AL, select tool, bind arguments, return result.
     pub fn plan(&self, request: &PlanRequest) -> CallPlan {
+        let active_tool_threshold = request.tool_threshold.unwrap_or(self.tool_threshold);
+        let active_mapping_threshold = request.mapping_threshold.unwrap_or(self.mapping_threshold);
+
         // 1. Parse AL text
         let parsed = al_parser::parse_al(&request.al);
 
@@ -58,7 +61,16 @@ impl SpectreDispatcher {
 
         // 3. Tool selection via cosine similarity
         let sims = similarity::cosine_similarities(&query_vec, self.registry.tool_embeddings.view());
-        let candidates = similarity::top_k_above_threshold(&sims, request.top_k, self.tool_threshold);
+        let candidates = similarity::top_k_above_threshold(&sims, request.top_k, active_tool_threshold);
+
+        // Map top-k candidates to CandidateTool struct
+        let eval_candidates: Vec<crate::types::CandidateTool> = candidates
+            .iter()
+            .map(|&(idx, score)| crate::types::CandidateTool {
+                id: self.registry.tools[idx].id.clone(),
+                score,
+            })
+            .collect();
 
         if candidates.is_empty() {
             return CallPlan {
@@ -68,6 +80,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing: Vec::new(),
                 notes: vec!["no tool matched above confidence threshold".into()],
+                active_tool_threshold,
+                active_mapping_threshold,
+                candidates: eval_candidates,
             };
         }
 
@@ -77,11 +92,15 @@ impl SpectreDispatcher {
 
         // 5. Slot-to-param matching
         if parsed.slot_keys.is_empty() || tool.args.is_empty() {
-            return self.build_result_no_slots(tool, confidence, &request.slots);
+            return self.build_result_no_slots(
+                tool, confidence, &request.slots, active_tool_threshold, active_mapping_threshold, eval_candidates
+            );
         }
 
-        let assignment = self.match_slots_to_params(tool, &parsed, &request.slots);
-        self.build_result(tool, confidence, assignment, &request.slots)
+        let assignment = self.match_slots_to_params(tool, &parsed, &request.slots, active_mapping_threshold);
+        self.build_result(
+            tool, confidence, assignment, &request.slots, active_tool_threshold, active_mapping_threshold, eval_candidates
+        )
     }
 
     /// Match slot keys to tool params using embedding similarity.
@@ -90,6 +109,7 @@ impl SpectreDispatcher {
         tool: &crate::types::ToolMeta,
         parsed: &al_parser::AlParsed,
         _slots: &HashMap<String, String>,
+        threshold: f32,
     ) -> Result<SlotAssignment, crate::error::PlanError> {
         let (param_start, param_end) = tool.param_range;
 
@@ -116,7 +136,7 @@ impl SpectreDispatcher {
         let sim_matrix = Array2::from_shape_vec((num_slots, num_params), sim_data)
             .unwrap_or_else(|_| Array2::zeros((num_slots, num_params)));
 
-        matching::assign_slots_to_params(&sim_matrix, &parsed.slot_keys, &tool.args, self.mapping_threshold)
+        matching::assign_slots_to_params(&sim_matrix, &parsed.slot_keys, &tool.args, threshold)
     }
 
     /// Build CallPlan when there are no slots to match (just return the tool).
@@ -125,6 +145,9 @@ impl SpectreDispatcher {
         tool: &crate::types::ToolMeta,
         confidence: f32,
         slots: &HashMap<String, String>,
+        active_tool_threshold: f32,
+        active_mapping_threshold: f32,
+        candidates: Vec<crate::types::CandidateTool>,
     ) -> CallPlan {
         // Check if required args are missing
         let missing: Vec<String> = tool
@@ -143,6 +166,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing,
                 notes: Vec::new(),
+                active_tool_threshold,
+                active_mapping_threshold,
+                candidates,
             };
         }
 
@@ -153,6 +179,9 @@ impl SpectreDispatcher {
             args: Some(slots.clone()),
             missing: Vec::new(),
             notes: Vec::new(),
+            active_tool_threshold,
+            active_mapping_threshold,
+            candidates,
         }
     }
 
@@ -163,6 +192,9 @@ impl SpectreDispatcher {
         confidence: f32,
         assignment: Result<SlotAssignment, crate::error::PlanError>,
         slots: &HashMap<String, String>,
+        active_tool_threshold: f32,
+        active_mapping_threshold: f32,
+        candidates: Vec<crate::types::CandidateTool>,
     ) -> CallPlan {
         match assignment {
             Err(crate::error::PlanError::MissingArgs { missing }) => CallPlan {
@@ -172,6 +204,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing,
                 notes: Vec::new(),
+                active_tool_threshold,
+                active_mapping_threshold,
+                candidates,
             },
             Err(crate::error::PlanError::AmbiguousMapping { details }) => CallPlan {
                 status: PlanStatus::AmbiguousMapping,
@@ -180,6 +215,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing: Vec::new(),
                 notes: vec![details],
+                active_tool_threshold,
+                active_mapping_threshold,
+                candidates,
             },
             Err(_) => CallPlan {
                 status: PlanStatus::NoTool,
@@ -188,6 +226,9 @@ impl SpectreDispatcher {
                 args: None,
                 missing: Vec::new(),
                 notes: vec!["unexpected error during matching".into()],
+                active_tool_threshold,
+                active_mapping_threshold,
+                candidates,
             },
             Ok(assignment) => {
                 // Build args by mapping slot values through the assignment
@@ -214,6 +255,9 @@ impl SpectreDispatcher {
                         args: Some(args),
                         missing,
                         notes: Vec::new(),
+                        active_tool_threshold,
+                        active_mapping_threshold,
+                        candidates,
                     };
                 }
 
@@ -229,6 +273,9 @@ impl SpectreDispatcher {
                     args: Some(args),
                     missing: Vec::new(),
                     notes,
+                    active_tool_threshold,
+                    active_mapping_threshold,
+                    candidates,
                 }
             }
         }

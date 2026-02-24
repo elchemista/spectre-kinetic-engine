@@ -1,2 +1,6 @@
 .claude
+*.tgz
 /target
+/models
+/packs
+/onnx*

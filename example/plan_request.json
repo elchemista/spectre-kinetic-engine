@@ -1,0 +1,10 @@
+{
+    "al": "WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}",
+    "slots": {
+        "title": "My Title",
+        "text": "Body content..."
+    },
+    "top_k": 3,
+    "tool_threshold": 0.5,
+    "mapping_threshold": 0.3
+}

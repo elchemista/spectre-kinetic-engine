@@ -46,11 +46,15 @@ pub fn parse_al(al_text: &str) -> AlParsed {
     AlParsed { action_text, slot_keys }
 }
 
-/// Split on the first occurrence of `WITH:` (case-insensitive).
+/// Split on the first occurrence of `WITH:` or `WITH ` (case-insensitive).
 /// Returns (before, Some(after)) or (full_text, None).
 fn split_on_with(text: &str) -> (&str, Option<&str>) {
     let upper = text.to_uppercase();
     if let Some(pos) = upper.find("WITH:") {
+        let before = text[..pos].trim();
+        let after = text[pos + 5..].trim();
+        (before, Some(after))
+    } else if let Some(pos) = upper.find("WITH ") {
         let before = text[..pos].trim();
         let after = text[pos + 5..].trim();
         (before, Some(after))
@@ -189,6 +193,15 @@ mod tests {
     fn parse_al_should_handle_spec_example() {
         let result = parse_al("WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}");
         assert_eq!(result.action_text, "WRITE NEW BLOG POST FOR elchemista.com");
+        assert_eq!(result.slot_keys.len(), 2);
+        assert_eq!(result.slot_keys[0].key, "title");
+        assert_eq!(result.slot_keys[1].key, "text");
+    }
+
+    #[test]
+    fn parse_al_should_handle_with_without_colon() {
+        let result = parse_al("WRITE POST WITH TITLE={title} TEXT={text}");
+        assert_eq!(result.action_text, "WRITE POST");
         assert_eq!(result.slot_keys.len(), 2);
         assert_eq!(result.slot_keys[0].key, "title");
         assert_eq!(result.slot_keys[1].key, "text");

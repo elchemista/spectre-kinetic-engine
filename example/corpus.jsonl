@@ -1,0 +1,20 @@
+{"type":"al","text":"WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"}
+{"type":"tool_doc","tool_id":"Elchemista.Blog.create_post/2","text":"Creates a new blog post on elchemista.com with a given title and content body"}
+{"type":"tool_spec","tool_id":"Elchemista.Blog.create_post/2","text":"create_post(title :: String.t(), body :: String.t()) :: {:ok, Post.t()} | {:error, term()}"}
+{"type":"param_card","tool_id":"Elchemista.Blog.create_post/2","text":"PARAM body TYPE String.t() ALIASES content,text,post_body DOC Main post content"}
+{"type":"param_card","tool_id":"Elchemista.Blog.create_post/2","text":"PARAM title TYPE String.t() ALIASES headline,subject DOC Post title"}
+{"type":"example","tool_id":"Elchemista.Blog.create_post/2","text":"WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"}
+
+{"type":"al","text":"CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"}
+{"type":"tool_doc","tool_id":"Payments.Stripe.create_payment_link/1","text":"Generates a new checkout session on Stripe for a given product name, amount, and currency"}
+{"type":"tool_spec","tool_id":"Payments.Stripe.create_payment_link/1","text":"create_payment_link(amount :: integer(), currency :: String.t(), name :: String.t())"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM amount TYPE integer() ALIASES price,cost DOC The cost of the item in cents"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM currency TYPE String.t() ALIASES coin DOC Currency code like USD or EUR"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM name TYPE String.t() ALIASES item,product_name DOC The name of the product being sold"}
+{"type":"example","tool_id":"Payments.Stripe.create_payment_link/1","text":"CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"}
+
+{"type":"slot_card","text":"SLOT TEXT: main content/body"}
+{"type":"slot_card","text":"SLOT TITLE: headline/title"}
+{"type":"slot_card","text":"SLOT AMOUNT: cost/price"}
+{"type":"slot_card","text":"SLOT CURRENCY: money/coin"}
+{"type":"slot_card","text":"SLOT PRODUCT_NAME: item name/product"}

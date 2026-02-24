@@ -57,7 +57,7 @@ pub struct DistillResult {
 /// 3. After all texts, compute `mean = sum / count` per token ID.
 /// 4. Optionally compute Zipf/SIF weights.
 pub fn distill(
-    teacher: &TeacherModel,
+    teacher: &mut TeacherModel,
     tokenizer: &Tokenizer,
     corpus: &[CorpusEntry],
     config: &DistillConfig,

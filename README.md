@@ -1,109 +1,277 @@
-# Spectre Toolchain
+# spectre-kinetic
 
-Static-embedding tool selection and planning for agents using a compact Action Language (AL).
+> **Deterministic, zero-LLM tool selection for agents — powered by static embeddings and a compact Action Language.**
 
-This repository provides:
+---
 
-- spectre-core: Core library for static text embeddings, AL parsing, similarity, slot→param matching, registry build, and the SpectreDispatcher planner.
-- spectre-train: Training library to distill a static token embedding table from an ONNX teacher model using a JSONL corpus.
-- spectre-dispatcher: CLI to train packs, build compiled registries (.mcr), and run planning from stdin JSON.
+## What is spectre-kinetic?
 
-All crates follow a small, dependency-light design and deterministic behavior suitable for tool-calling.
+Modern LLM-based agents typically rely on the model itself to decide which tool to call and how to fill in its parameters. This works, but it has real costs: every tool-selection decision burns tokens, adds latency, and introduces non-determinism. If the model hallucinates a tool name or misformats a parameter, the whole action fails silently.
 
-## Status
+**spectre-kinetic** solves this by moving tool selection *out* of the LLM entirely.
 
-- All unit tests pass: `cargo test --workspace`.
-- Clippy clean: `cargo clippy --workspace --all-targets -- -D warnings`.
-- ONNX inference uses `ort = 2.0.0-rc.9` with dynamic loading.
-
-## Quickstart
-
-### 1) Build
+Instead of asking the model "which function should I call?", you give the agent a small, expressive **Action Language (AL)** — a set of structured verbs and slots like:
 
 ```
-cargo build --workspace
+INSTALL PACKAGE nginx
+COMPRESS DIRECTORY /var/log INTO FILE logs.tar.gz
+WRITE POST WITH title={title} body={body}
 ```
 
-Run tests:
+spectre-kinetic takes one of these AL statements, uses **cosine similarity over static token embeddings** to match it against a compiled tool registry, maps the slots to the correct parameters, and returns a deterministic `CallPlan` JSON — no LLM call required.
+
+### Why was this built?
+
+The problem is this: LLMs are excellent at *reasoning* and *generating text*, but they are overkill — and unreliable — for the mechanical task of "given an intent, select the right function and fill in its arguments". That task is essentially a structured retrieval + mapping problem, and it should be fast, reproducible, and offline-capable.
+
+spectre-kinetic was built to:
+
+- **Offload tool dispatch from the LLM** — the model produces an AL statement, spectre-kinetic handles the rest.
+- **Work without a network connection** — all inference uses a tiny pre-distilled static embedding table (a few MB), not a live API.
+- **Be fully deterministic** — same AL statement + same registry = same CallPlan, every time.
+- **Support any domain through training** — ship it with blog tool definitions today, retrain on Linux CLI commands tomorrow, or mix both in a combined corpus.
+- **Give agents transparency** — the `candidates` field in the output shows every evaluated tool and its similarity score, so agents (or humans debugging them) can see exactly why a tool was or wasn't selected.
+
+### How it works
 
 ```
-cargo test --workspace
+AL statement (text)
+       │
+       ▼
+  AL Parser  ──► verb + slot list
+       │
+       ▼
+ Static Embeddings  ──► token vectors (distilled from a teacher ONNX model)
+       │
+       ▼
+ Cosine Similarity  ──► ranked tool candidates from the compiled registry
+       │
+       ▼
+  Slot Mapper  ──► slots assigned to tool parameters
+       │
+       ▼
+  CallPlan JSON  ──► { selected_tool, args, confidence, candidates }
 ```
 
-### 2) Distill a model pack
+The embedding table is distilled once from a teacher model (e.g. all-MiniLM-L6-v2) over a training corpus, then frozen. At inference time, no neural network runs — only dot products and a lookup table.
 
-You need:
+---
 
-- Teacher ONNX (e.g. a MiniLM variant that outputs `last_hidden_state` of shape [batch, seq_len, dim]).
-- HuggingFace `tokenizer.json` matching the teacher.
-- A `corpus.jsonl` with one JSON object per line; see "Corpus format" below.
+## Crates
 
-Command:
+- **spectre-core** — AL parser, static embedder, cosine similarity, slot→param matching, registry builder, `SpectreDispatcher` planner.
+- **spectre-train** — Corpus parsing, ONNX teacher wrapper, distillation loop, pack writer.
+- **spectre-kinetic** — CLI with `train`, `build-registry`, and `plan` subcommands.
 
+All crates are deterministic and dependency-light.
+
+---
+
+## Installation
+
+### Prerequisites
+
+- **Rust (stable ≥ 1.93)** — install or update via [rustup](https://rustup.rs):
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  # or update an existing installation:
+  rustup update stable
+  ```
+
+- **ONNX Runtime 1.23 shared library** — required at runtime for the `train` subcommand (not needed for `plan` or `build-registry`). See the section below.
+
+### Install the CLI
+
+```bash
+git clone https://github.com/your-org/spectre-kinetic
+cd spectre-kinetic
+cargo install --path crates/spectre-cli
 ```
-spectre-dispatcher train \
-  --teacher-onnx /path/to/teacher.onnx \
-  --tokenizer /path/to/tokenizer.json \
-  --corpus /path/to/corpus.jsonl \
+
+This puts `spectre-kinetic` in `~/.cargo/bin/`. Make sure that directory is in your `PATH`.
+
+Verify:
+
+```bash
+spectre-kinetic --version
+# spectre-kinetic 0.1.0
+```
+
+---
+
+## Setting up the ONNX Runtime
+
+`spectre-kinetic train` uses the ONNX Runtime to run the teacher model. The `ort` crate loads the runtime **dynamically at runtime** — you need to provide the shared library yourself.
+
+### Download ONNX Runtime 1.23
+
+```bash
+# Linux x64
+curl -L https://github.com/microsoft/onnxruntime/releases/download/v1.23.0/onnxruntime-linux-x64-1.23.0.tgz \
+  -o onnxruntime-linux-x64-1.23.0.tgz
+tar -xzf onnxruntime-linux-x64-1.23.0.tgz
+
+# macOS arm64
+curl -L https://github.com/microsoft/onnxruntime/releases/download/v1.23.0/onnxruntime-osx-arm64-1.23.0.tgz \
+  -o onnxruntime-osx-arm64-1.23.0.tgz
+tar -xzf onnxruntime-osx-arm64-1.23.0.tgz
+```
+
+### Point spectre-kinetic at it
+
+Set the `ORT_DYLIB_PATH` environment variable to the `.so` / `.dylib` file:
+
+```bash
+# Linux
+export ORT_DYLIB_PATH=/path/to/onnxruntime-linux-x64-1.23.0/lib/libonnxruntime.so.1.23.0
+
+# macOS
+export ORT_DYLIB_PATH=/path/to/onnxruntime-osx-arm64-1.23.0/lib/libonnxruntime.1.23.0.dylib
+```
+
+Add this to your `~/.bashrc` / `~/.zshrc` to make it permanent.
+
+---
+
+## Downloading a Teacher Model
+
+Any ONNX model that outputs `last_hidden_state` of shape `[batch, seq_len, dim]` works. The recommended default is **all-MiniLM-L6-v2** (dim=384).
+
+### Download with huggingface-cli
+
+```bash
+pip install huggingface_hub
+huggingface-cli download sentence-transformers/all-MiniLM-L6-v2 \
+  --include "*.onnx" "tokenizer.json" \
+  --local-dir models/all-MiniLM-L6-v2
+```
+
+### Manual download
+
+Go to: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/tree/main
+
+Download:
+- `onnx/model.onnx` → save as `models/all-MiniLM-L6-v2/model.onnx`
+- `tokenizer.json` → save as `models/all-MiniLM-L6-v2/tokenizer.json`
+
+---
+
+## Training a Model Pack
+
+### 1. Prepare a corpus
+
+A `corpus.jsonl` file with one JSON object per line. Supported types:
+
+```jsonl
+{"type":"al","text":"WRITE POST WITH title={title} body={body}"}
+{"type":"tool_doc","tool_id":"Blog.write/2","text":"Writes a blog post"}
+{"type":"tool_spec","tool_id":"Blog.write/2","text":"title: string, body: string"}
+{"type":"param_card","tool_id":"Blog.write/2","text":"title: string (required)"}
+{"type":"slot_card","text":"title={title}"}
+{"type":"example","tool_id":"Blog.write/2","text":"WRITE POST WITH title={title} body={body}"}
+```
+
+For Linux CLI tools, AL verbs map like:
+
+```jsonl
+{"type":"al","text":"INSTALL PACKAGE nginx"}
+{"type":"tool_doc","tool_id":"apt/install","text":"Install a package using apt"}
+{"type":"example","tool_id":"apt/install","text":"INSTALL PACKAGE {package}"}
+```
+
+### 2. Run training
+
+```bash
+ORT_DYLIB_PATH=/path/to/libonnxruntime.so.1.23.0 \
+spectre-kinetic train \
+  --teacher-onnx models/all-MiniLM-L6-v2/model.onnx \
+  --tokenizer models/all-MiniLM-L6-v2/tokenizer.json \
+  --corpus corpus.jsonl \
   --out packs/minilm \
   --max-len 256 \
   --dim 384 \
   --zipf
 ```
 
-Outputs in `packs/minilm`:
+Outputs written to `packs/minilm/`:
 
-- pack.json (metadata)
-- tokenizer.json (copied)
-- token_embeddings.bin (f16 little-endian)
-- weights.json (optional, when `--zipf`)
+| File | Description |
+|---|---|
+| `pack.json` | Metadata (vocab size, dim, teacher ID, timestamp) |
+| `tokenizer.json` | Copy of the tokenizer |
+| `token_embeddings.bin` | Static token table (f16 little-endian, `[vocab_size × dim]`) |
+| `weights.bin` | Optional Zipf/SIF per-token weights (when `--zipf`) |
 
-Note: The ONNX runtime is loaded dynamically. If needed, set `ORT_DYLIB_PATH` to the directory containing the ONNX Runtime shared library.
+The pack is self-contained — copy the `packs/minilm/` directory anywhere to use it.
 
-### 3) Build a compiled registry (.mcr)
+---
 
-Given a tool registry JSON (see schema summary below):
+## Using the Trained Model
 
-```
-spectre-dispatcher build-registry \
+### Build a compiled registry
+
+Define your tools in a `tools.json` file (see schema below), then compile it:
+
+```bash
+spectre-kinetic build-registry \
   --model packs/minilm \
   --registry tools.json \
   --out registry.mcr
 ```
 
-### 4) Plan a call from AL + slots
+This embeds each tool card (doc + spec + examples) and individual parameter cards into a compact binary registry using f16 cosine-ready embeddings.
 
-Pipe a `PlanRequest` JSON to stdin:
+### Plan a tool call
 
+Send a `PlanRequest` JSON on stdin:
+
+```json
+{
+  "al": "INSTALL PACKAGE nginx",
+  "slots": {"package": "nginx"},
+  "top_k": 3,
+  "tool_threshold": 0.45,
+  "mapping_threshold": 0.35
+}
 ```
-echo '{
-  "al": "WRITE POST WITH title={title} body={body}",
-  "slots": {"title": "Hello", "body": "World"},
-  "top_k": 3
-}' | spectre-dispatcher plan \
+
+```bash
+cat plan_request.json | spectre-kinetic plan \
   --model packs/minilm \
   --registry registry.mcr \
   --stdin-json
 ```
 
-The CLI prints a `CallPlan` JSON with selected tool, confidence, mapped args, and status.
+Example output:
 
-## Corpus format (corpus.jsonl)
-
-One JSON object per line with a `type` field (snake_case):
-
-- {"type":"al","text":"WRITE POST WITH title={title}"}
-- {"type":"tool_doc","tool_id":"Blog.write/2","text":"Writes a blog post"}
-- {"type":"tool_spec","tool_id":"Blog.write/2","text":"title: string, body: string"}
-- {"type":"param_card","tool_id":"Blog.write/2","text":"title: string (required)"}
-- {"type":"slot_card","text":"title={title}"}
-- {"type":"example","tool_id":"Blog.write/2","text":"WRITE POST WITH title={title} body={body}"}
-
-The distiller tokenizes each text, runs the teacher, accumulates token embeddings by token ID, and averages them to produce a static token table.
-
-## Registry schema summary (tools.json)
-
+```json
+{
+  "status": "ok",
+  "selected_tool": "apt/install",
+  "confidence": 0.82,
+  "args": {
+    "package": "nginx"
+  },
+  "missing": [],
+  "active_tool_threshold": 0.45,
+  "active_mapping_threshold": 0.35,
+  "candidates": [
+    {"id": "apt/install",  "score": 0.82},
+    {"id": "pacman/install", "score": 0.71},
+    {"id": "dnf/install",  "score": 0.69}
+  ]
+}
 ```
+
+- **`tool_threshold`** — minimum cosine similarity for a tool to be considered (default: `0.40`).
+- **`mapping_threshold`** — minimum similarity for a slot to be mapped to a parameter (default: `0.35`).
+- **`candidates`** — all evaluated tools and their scores, in descending order.
+
+---
+
+## Registry Schema (`tools.json`)
+
+```json
 {
   "version": 1,
   "tools": [
@@ -115,8 +283,8 @@ The distiller tokenizes each text, runs the teacher, accumulates token embedding
       "doc": "Writes a blog post",
       "spec": "title: string, body: string",
       "args": [
-        {"name":"title", "type":"string", "required":true, "aliases":["subject"]},
-        {"name":"body",  "type":"string", "required":true}
+        {"name": "title", "type": "string", "required": true, "aliases": ["subject"]},
+        {"name": "body",  "type": "string", "required": true}
       ],
       "examples": ["WRITE POST WITH title={title} body={body}"]
     }
@@ -124,22 +292,61 @@ The distiller tokenizes each text, runs the teacher, accumulates token embedding
 }
 ```
 
-The CLI will embed a tool card (doc+spec+examples) and per-parameter cards, storing them in `registry.mcr` with f16 embeddings.
+---
 
-## Developer notes
+## Complete Workflow Example (Linux tools)
 
-- Formatting: `rustfmt` (config included).
-- Linting: `cargo clippy --workspace --all-targets -- -D warnings`.
-- Tests: `cargo test --workspace`.
-- The PCA module is a stub that truncates dimensions (no eigendecomposition yet).
-- The teacher wrapper expects an output named `last_hidden_state` or uses the first output.
-- Distillation uses mean pooling and optional SIF (Zipf) weighting.
+```bash
+# 1. Update Rust
+rustup update stable
 
-## Crate structure
+# 2. Install spectre-kinetic
+cargo install --path crates/spectre-cli
 
-- crates/spectre-core: library with AL parser, embedder, similarity, matching, registry, planner.
-- crates/spectre-train: library with corpus parsing, ONNX teacher wrapper, distillation, pack writer.
-- crates/spectre-cli: `spectre-dispatcher` binary (train, build-registry, plan).
+# 3. Download ONNX Runtime 1.23
+curl -L https://github.com/microsoft/onnxruntime/releases/download/v1.23.0/onnxruntime-linux-x64-1.23.0.tgz | tar -xz
+export ORT_DYLIB_PATH=$PWD/onnxruntime-linux-x64-1.23.0/lib/libonnxruntime.so.1.23.0
+
+# 4. Download teacher model
+huggingface-cli download sentence-transformers/all-MiniLM-L6-v2 \
+  --include "*.onnx" "tokenizer.json" --local-dir models/all-MiniLM-L6-v2
+
+# 5. Train on the linux + generic corpus
+spectre-kinetic train \
+  --teacher-onnx models/all-MiniLM-L6-v2/model.onnx \
+  --tokenizer models/all-MiniLM-L6-v2/tokenizer.json \
+  --corpus combined_corpus.jsonl \
+  --out packs/minilm --zipf
+
+# 6. Build registry
+spectre-kinetic build-registry \
+  --model packs/minilm \
+  --registry tools.json \
+  --out registry.mcr
+
+# 7. Plan
+echo '{"al":"INSTALL PACKAGE nginx","slots":{"package":"nginx"}}' | \
+  spectre-kinetic plan --model packs/minilm --registry registry.mcr --stdin-json
+```
+
+---
+
+## Developer Notes
+
+- **Tests:** `cargo test --workspace`
+- **Lint:** `cargo clippy --workspace --all-targets -- -D warnings`
+- **Format:** `rustfmt` (config included)
+- The PCA module truncates dimensions (no eigendecomposition yet).
+- The teacher wrapper uses the first ONNX output (typically `last_hidden_state`).
+- Distillation uses mean pooling + optional SIF (Zipf) weighting per token.
+
+## Crate Structure
+
+| Crate | Role |
+|---|---|
+| `crates/spectre-core` | AL parser, embedder, similarity, matching, registry, planner |
+| `crates/spectre-train` | Corpus parsing, ONNX teacher wrapper, distillation, pack writer |
+| `crates/spectre-cli` | `spectre-kinetic` binary |
 
 ## License
 

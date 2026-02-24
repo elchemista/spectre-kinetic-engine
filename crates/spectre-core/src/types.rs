@@ -92,6 +92,12 @@ pub struct PlanRequest {
     /// Number of top candidate tools to consider.
     #[serde(default = "default_top_k")]
     pub top_k: usize,
+    /// Optional override for the tool selection similarity threshold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_threshold: Option<f32>,
+    /// Optional override for the slot-to-param matching similarity threshold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mapping_threshold: Option<f32>,
 }
 
 fn default_top_k() -> usize {
@@ -118,6 +124,22 @@ pub struct CallPlan {
     /// Informational notes about the plan.
     #[serde(default)]
     pub notes: Vec<String>,
+    /// Tool selection similarity threshold that was applied (useful for tuning).
+    pub active_tool_threshold: f32,
+    /// Slot mapping similarity threshold that was applied (useful for tuning).
+    pub active_mapping_threshold: f32,
+    /// All evaluated tool candidates and their similarity scores (sorted descending).
+    #[serde(default)]
+    pub candidates: Vec<CandidateTool>,
+}
+
+/// A tool candidate evaluated during the tool selection phase.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CandidateTool {
+    /// Fully-qualified tool ID.
+    pub id: String,
+    /// Cosine similarity score.
+    pub score: f32,
 }
 
 /// Outcome status of a plan request.
@@ -125,6 +147,7 @@ pub struct CallPlan {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PlanStatus {
     /// Tool was selected and arguments were successfully bound.
+    #[serde(rename = "ok")]
     Ok,
     /// No tool matched above the confidence threshold.
     NoTool,

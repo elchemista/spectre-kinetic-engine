@@ -1,0 +1,524 @@
+{"type":"al","text":"WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"}
+{"type":"tool_doc","tool_id":"Elchemista.Blog.create_post/2","text":"Creates a new blog post on elchemista.com with a given title and content body"}
+{"type":"tool_spec","tool_id":"Elchemista.Blog.create_post/2","text":"create_post(title :: String.t(), body :: String.t()) :: {:ok, Post.t()} | {:error, term()}"}
+{"type":"param_card","tool_id":"Elchemista.Blog.create_post/2","text":"PARAM body TYPE String.t() ALIASES content,text,post_body DOC Main post content"}
+{"type":"param_card","tool_id":"Elchemista.Blog.create_post/2","text":"PARAM title TYPE String.t() ALIASES headline,subject DOC Post title"}
+{"type":"example","tool_id":"Elchemista.Blog.create_post/2","text":"WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"}
+
+{"type":"al","text":"CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"}
+{"type":"tool_doc","tool_id":"Payments.Stripe.create_payment_link/1","text":"Generates a new checkout session on Stripe for a given product name, amount, and currency"}
+{"type":"tool_spec","tool_id":"Payments.Stripe.create_payment_link/1","text":"create_payment_link(amount :: integer(), currency :: String.t(), name :: String.t())"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM amount TYPE integer() ALIASES price,cost DOC The cost of the item in cents"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM currency TYPE String.t() ALIASES coin DOC Currency code like USD or EUR"}
+{"type":"param_card","tool_id":"Payments.Stripe.create_payment_link/1","text":"PARAM name TYPE String.t() ALIASES item,product_name DOC The name of the product being sold"}
+{"type":"example","tool_id":"Payments.Stripe.create_payment_link/1","text":"CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"}
+
+{"type":"slot_card","text":"SLOT TEXT: main content/body"}
+{"type":"slot_card","text":"SLOT TITLE: headline/title"}
+{"type":"slot_card","text":"SLOT AMOUNT: cost/price"}
+{"type":"slot_card","text":"SLOT CURRENCY: money/coin"}
+{"type":"slot_card","text":"SLOT PRODUCT_NAME: item name/product"}
+
+{"type": "tool_doc", "tool_id": "Linux.Apt.install/1", "text": "install a package using apt package manager on debian ubuntu"}
+{"type": "tool_spec", "tool_id": "Linux.Apt.install/1", "text": "package: string"}
+{"type": "param_card", "tool_id": "Linux.Apt.install/1", "text": "package: string (required) name of the software package"}
+{"type": "example", "tool_id": "Linux.Apt.install/1", "text": "INSTALL PACKAGE {package} VIA APT"}
+{"type": "example", "tool_id": "Linux.Apt.install/1", "text": "APT INSTALL {package}"}
+{"type": "al", "text": "INSTALL PACKAGE {package} VIA APT"}
+{"type": "al", "text": "APT INSTALL {package}"}
+{"type": "al", "text": "INSTALL {package}"}
+{"type": "tool_doc", "tool_id": "Linux.Pacman.install/1", "text": "install a package using pacman package manager on arch linux"}
+{"type": "tool_spec", "tool_id": "Linux.Pacman.install/1", "text": "package: string"}
+{"type": "param_card", "tool_id": "Linux.Pacman.install/1", "text": "package: string (required) name of the software package"}
+{"type": "example", "tool_id": "Linux.Pacman.install/1", "text": "INSTALL PACKAGE {package} VIA PACMAN"}
+{"type": "example", "tool_id": "Linux.Pacman.install/1", "text": "PACMAN SYNC {package}"}
+{"type": "al", "text": "INSTALL PACKAGE {package} VIA PACMAN"}
+{"type": "al", "text": "PACMAN SYNC {package}"}
+{"type": "al", "text": "INSTALL {package}"}
+{"type": "tool_doc", "tool_id": "Linux.Dnf.install/1", "text": "install a package using dnf package manager on fedora rhel centos"}
+{"type": "tool_spec", "tool_id": "Linux.Dnf.install/1", "text": "package: string"}
+{"type": "param_card", "tool_id": "Linux.Dnf.install/1", "text": "package: string (required) name of the software package"}
+{"type": "example", "tool_id": "Linux.Dnf.install/1", "text": "INSTALL PACKAGE {package} VIA DNF"}
+{"type": "example", "tool_id": "Linux.Dnf.install/1", "text": "DNF INSTALL {package}"}
+{"type": "al", "text": "INSTALL PACKAGE {package} VIA DNF"}
+{"type": "al", "text": "DNF INSTALL {package}"}
+{"type": "al", "text": "INSTALL {package}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.ls/1", "text": "list directory contents files folders"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.ls/1", "text": "path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.ls/1", "text": "path: string (required) directory path to list"}
+{"type": "example", "tool_id": "Linux.Coreutils.ls/1", "text": "LIST DIRECTORY {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.ls/1", "text": "LS DIRECTORY {path}"}
+{"type": "al", "text": "LIST DIRECTORY {path}"}
+{"type": "al", "text": "LS DIRECTORY {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.rm/1", "text": "remove delete erase file or directory"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.rm/1", "text": "path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.rm/1", "text": "path: string (required) file or folder path to delete"}
+{"type": "example", "tool_id": "Linux.Coreutils.rm/1", "text": "DELETE FILE {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.rm/1", "text": "REMOVE FILE {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.rm/1", "text": "RM FILE {path}"}
+{"type": "al", "text": "DELETE FILE {path}"}
+{"type": "al", "text": "REMOVE FILE {path}"}
+{"type": "al", "text": "RM FILE {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.cat/1", "text": "read print show concatenate file contents to standard output"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.cat/1", "text": "path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.cat/1", "text": "path: string (required) file path to read"}
+{"type": "example", "tool_id": "Linux.Coreutils.cat/1", "text": "READ FILE {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.cat/1", "text": "CAT FILE {path}"}
+{"type": "al", "text": "READ FILE {path}"}
+{"type": "al", "text": "CAT FILE {path}"}
+{"type": "al", "text": "SHOW FILE {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.cp/2", "text": "copy files and directories"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.cp/2", "text": "source: string, dest: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.cp/2", "text": "source: string (required) source file or directory to copy"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.cp/2", "text": "dest: string (required) destination path or directory"}
+{"type": "example", "tool_id": "Linux.Coreutils.cp/2", "text": "COPY FILE {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.Coreutils.cp/2", "text": "CP {source} {dest}"}
+{"type": "al", "text": "COPY FILE {source} TO {dest}"}
+{"type": "al", "text": "CP {source} {dest}"}
+{"type": "al", "text": "DUPLICATE FILE {source} INTO {dest}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.mv/2", "text": "move or rename files and directories"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.mv/2", "text": "source: string, dest: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.mv/2", "text": "source: string (required) source file or directory to move"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.mv/2", "text": "dest: string (required) destination path or directory"}
+{"type": "example", "tool_id": "Linux.Coreutils.mv/2", "text": "MOVE FILE {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.Coreutils.mv/2", "text": "RENAME FILE {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.Coreutils.mv/2", "text": "MV {source} {dest}"}
+{"type": "al", "text": "MOVE FILE {source} TO {dest}"}
+{"type": "al", "text": "RENAME FILE {source} TO {dest}"}
+{"type": "al", "text": "MV {source} {dest}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.mkdir/1", "text": "make directories create directory folder"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.mkdir/1", "text": "path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.mkdir/1", "text": "path: string (required) directory path to create"}
+{"type": "example", "tool_id": "Linux.Coreutils.mkdir/1", "text": "CREATE DIRECTORY {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.mkdir/1", "text": "MAKE DIRECTORY {path}"}
+{"type": "example", "tool_id": "Linux.Coreutils.mkdir/1", "text": "MKDIR {path}"}
+{"type": "al", "text": "CREATE DIRECTORY {path}"}
+{"type": "al", "text": "MAKE DIRECTORY {path}"}
+{"type": "al", "text": "MKDIR {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.echo/1", "text": "display a line of text print string"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.echo/1", "text": "text: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.echo/1", "text": "text: string (required) text to echo to output"}
+{"type": "example", "tool_id": "Linux.Coreutils.echo/1", "text": "ECHO TEXT {text}"}
+{"type": "example", "tool_id": "Linux.Coreutils.echo/1", "text": "PRINT STRING {text}"}
+{"type": "al", "text": "ECHO TEXT {text}"}
+{"type": "al", "text": "PRINT STRING {text}"}
+{"type": "al", "text": "SHOW MESSAGE {text}"}
+{"type": "tool_doc", "tool_id": "Linux.Findutils.find/2", "text": "search for files in a directory hierarchy recursively"}
+{"type": "tool_spec", "tool_id": "Linux.Findutils.find/2", "text": "path: string, name: string"}
+{"type": "param_card", "tool_id": "Linux.Findutils.find/2", "text": "path: string (required) directory path to search within"}
+{"type": "param_card", "tool_id": "Linux.Findutils.find/2", "text": "name: string (required) name of the file to search for"}
+{"type": "example", "tool_id": "Linux.Findutils.find/2", "text": "FIND FILE {name} IN DIRECTORY {path}"}
+{"type": "example", "tool_id": "Linux.Findutils.find/2", "text": "SEARCH DIRECTORY {path} FOR {name}"}
+{"type": "al", "text": "FIND FILE {name} IN DIRECTORY {path}"}
+{"type": "al", "text": "SEARCH DIRECTORY {path} FOR {name}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.uname/1", "text": "print system information like kernel name operating system architecture"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.uname/1", "text": "flags: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.uname/1", "text": "flags: string (optional) flags to pass to uname like -a or -r"}
+{"type": "example", "tool_id": "Linux.Coreutils.uname/1", "text": "PRINT SYSTEM INFO WITH {flags}"}
+{"type": "example", "tool_id": "Linux.Coreutils.uname/1", "text": "UNAME WITH {flags}"}
+{"type": "al", "text": "PRINT SYSTEM INFO WITH {flags}"}
+{"type": "al", "text": "UNAME WITH {flags}"}
+{"type": "al", "text": "SHOW OS INFO"}
+{"type": "tool_doc", "tool_id": "Linux.Procps.free/0", "text": "display amount of free and used memory in the system RAM"}
+{"type": "tool_spec", "tool_id": "Linux.Procps.free/0", "text": ""}
+{"type": "example", "tool_id": "Linux.Procps.free/0", "text": "SHOW FREE MEMORY"}
+{"type": "example", "tool_id": "Linux.Procps.free/0", "text": "DISPLAY RAM USAGE"}
+{"type": "al", "text": "SHOW FREE MEMORY"}
+{"type": "al", "text": "DISPLAY RAM USAGE"}
+{"type": "al", "text": "FREE MEMORY"}
+{"type": "tool_doc", "tool_id": "Linux.Systemd.systemctl_start/1", "text": "start a systemd service daemon unit"}
+{"type": "tool_spec", "tool_id": "Linux.Systemd.systemctl_start/1", "text": "name: string"}
+{"type": "param_card", "tool_id": "Linux.Systemd.systemctl_start/1", "text": "name: string (required) name of the service to start"}
+{"type": "example", "tool_id": "Linux.Systemd.systemctl_start/1", "text": "START SERVICE {name}"}
+{"type": "al", "text": "START SERVICE {name}"}
+{"type": "al", "text": "SYSTEMCTL START {name}"}
+{"type": "tool_doc", "tool_id": "Linux.Systemd.systemctl_stop/1", "text": "stop a systemd service daemon unit"}
+{"type": "tool_spec", "tool_id": "Linux.Systemd.systemctl_stop/1", "text": "name: string"}
+{"type": "param_card", "tool_id": "Linux.Systemd.systemctl_stop/1", "text": "name: string (required) name of the service to stop"}
+{"type": "example", "tool_id": "Linux.Systemd.systemctl_stop/1", "text": "STOP SERVICE {name}"}
+{"type": "al", "text": "STOP SERVICE {name}"}
+{"type": "al", "text": "SYSTEMCTL STOP {name}"}
+{"type": "tool_doc", "tool_id": "Linux.Archive.unzip/2", "text": "list, test and extract compressed files in a ZIP archive"}
+{"type": "tool_spec", "tool_id": "Linux.Archive.unzip/2", "text": "archive: string, dest: string"}
+{"type": "param_card", "tool_id": "Linux.Archive.unzip/2", "text": "archive: string (required) zip archive file to extract"}
+{"type": "param_card", "tool_id": "Linux.Archive.unzip/2", "text": "dest: string (optional) directory to extract to"}
+{"type": "example", "tool_id": "Linux.Archive.unzip/2", "text": "UNZIP FILE {archive} TO {dest}"}
+{"type": "example", "tool_id": "Linux.Archive.unzip/2", "text": "EXTRACT ZIP {archive}"}
+{"type": "al", "text": "UNZIP FILE {archive} TO {dest}"}
+{"type": "al", "text": "EXTRACT ZIP {archive}"}
+{"type": "tool_doc", "tool_id": "Linux.Archive.zip/2", "text": "package and compress zip archive files"}
+{"type": "tool_spec", "tool_id": "Linux.Archive.zip/2", "text": "archive: string, files: string"}
+{"type": "param_card", "tool_id": "Linux.Archive.zip/2", "text": "archive: string (required) output zip filename"}
+{"type": "param_card", "tool_id": "Linux.Archive.zip/2", "text": "files: string (required) files or directories to zip"}
+{"type": "example", "tool_id": "Linux.Archive.zip/2", "text": "ZIP FILES {files} INTO {archive}"}
+{"type": "example", "tool_id": "Linux.Archive.zip/2", "text": "COMPRESS TO ZIP {archive}"}
+{"type": "al", "text": "ZIP FILES {files} INTO {archive}"}
+{"type": "al", "text": "COMPRESS TO ZIP {archive}"}
+{"type": "tool_doc", "tool_id": "Linux.Cron.crontab/2", "text": "maintain crontab files for individual users"}
+{"type": "tool_spec", "tool_id": "Linux.Cron.crontab/2", "text": "schedule: string, command: string"}
+{"type": "param_card", "tool_id": "Linux.Cron.crontab/2", "text": "schedule: string (required) cron expression for timing"}
+{"type": "param_card", "tool_id": "Linux.Cron.crontab/2", "text": "command: string (required) script or command to run"}
+{"type": "example", "tool_id": "Linux.Cron.crontab/2", "text": "ADD CRON JOB {command} AT {schedule}"}
+{"type": "example", "tool_id": "Linux.Cron.crontab/2", "text": "SET TASK FOR TODAY TO {command} AT {schedule}"}
+{"type": "example", "tool_id": "Linux.Cron.crontab/2", "text": "AUTOMATE {command} EVERY {schedule}"}
+{"type": "al", "text": "ADD CRON JOB {command} AT {schedule}"}
+{"type": "al", "text": "SET TASK FOR TODAY TO {command} AT {schedule}"}
+{"type": "al", "text": "AUTOMATE {command} EVERY {schedule}"}
+{"type": "tool_doc", "tool_id": "Linux.Cron.at/2", "text": "execute commands at a later time"}
+{"type": "tool_spec", "tool_id": "Linux.Cron.at/2", "text": "time: string, command: string"}
+{"type": "param_card", "tool_id": "Linux.Cron.at/2", "text": "time: string (required) time to execute the job"}
+{"type": "param_card", "tool_id": "Linux.Cron.at/2", "text": "command: string (required) script or command to run"}
+{"type": "example", "tool_id": "Linux.Cron.at/2", "text": "SCHEDULE TASK {command} FOR {time}"}
+{"type": "example", "tool_id": "Linux.Cron.at/2", "text": "RUN ONCE COMMAND {command} AT {time}"}
+{"type": "example", "tool_id": "Linux.Cron.at/2", "text": "AT {time} DO {command}"}
+{"type": "al", "text": "SCHEDULE TASK {command} FOR {time}"}
+{"type": "al", "text": "RUN ONCE COMMAND {command} AT {time}"}
+{"type": "al", "text": "AT {time} DO {command}"}
+{"type": "tool_doc", "tool_id": "Linux.Network.curl/2", "text": "download transfer fetch data from network url http https web"}
+{"type": "tool_spec", "tool_id": "Linux.Network.curl/2", "text": "url: string, path: string"}
+{"type": "param_card", "tool_id": "Linux.Network.curl/2", "text": "url: string (required) web address to download"}
+{"type": "param_card", "tool_id": "Linux.Network.curl/2", "text": "path: string (required) output file path"}
+{"type": "example", "tool_id": "Linux.Network.curl/2", "text": "DOWNLOAD URL {url} TO FILE {path}"}
+{"type": "example", "tool_id": "Linux.Network.curl/2", "text": "CURL URL {url} TO {path}"}
+{"type": "al", "text": "DOWNLOAD URL {url} TO FILE {path}"}
+{"type": "al", "text": "CURL URL {url} TO {path}"}
+{"type": "al", "text": "FETCH HTTP {url}"}
+{"type": "tool_doc", "tool_id": "Linux.Network.wget/2", "text": "non-interactive network downloader wget"}
+{"type": "tool_spec", "tool_id": "Linux.Network.wget/2", "text": "url: string, path: string"}
+{"type": "param_card", "tool_id": "Linux.Network.wget/2", "text": "url: string (required) web address to download"}
+{"type": "param_card", "tool_id": "Linux.Network.wget/2", "text": "path: string (required) output file path"}
+{"type": "example", "tool_id": "Linux.Network.wget/2", "text": "WGET URL {url} INTO {path}"}
+{"type": "example", "tool_id": "Linux.Network.wget/2", "text": "PULL WEB PAGE {url} TO {path}"}
+{"type": "al", "text": "WGET URL {url} INTO {path}"}
+{"type": "al", "text": "PULL WEB PAGE {url} TO {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Network.aria2c/2", "text": "fast lightweight multi-protocol & multi-source download utility"}
+{"type": "tool_spec", "tool_id": "Linux.Network.aria2c/2", "text": "url: string, path: string"}
+{"type": "param_card", "tool_id": "Linux.Network.aria2c/2", "text": "url: string (required) URL or torrent to download"}
+{"type": "param_card", "tool_id": "Linux.Network.aria2c/2", "text": "path: string (required) output file or directory"}
+{"type": "example", "tool_id": "Linux.Network.aria2c/2", "text": "ARIA DOWNLOAD {url} TO {path}"}
+{"type": "example", "tool_id": "Linux.Network.aria2c/2", "text": "FAST DOWNLOAD URL {url} TO {path}"}
+{"type": "al", "text": "ARIA DOWNLOAD {url} TO {path}"}
+{"type": "al", "text": "FAST DOWNLOAD URL {url} TO {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Network.rsync/2", "text": "fast versatile remote and local file-copying tool"}
+{"type": "tool_spec", "tool_id": "Linux.Network.rsync/2", "text": "source: string, dest: string"}
+{"type": "param_card", "tool_id": "Linux.Network.rsync/2", "text": "source: string (required) source file or directory"}
+{"type": "param_card", "tool_id": "Linux.Network.rsync/2", "text": "dest: string (required) destination file or directory"}
+{"type": "example", "tool_id": "Linux.Network.rsync/2", "text": "SYNC DIRECTORY {source} WITH {dest}"}
+{"type": "example", "tool_id": "Linux.Network.rsync/2", "text": "RSYNC {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.Network.rsync/2", "text": "BACKUP FILES FROM {source} TO {dest}"}
+{"type": "al", "text": "SYNC DIRECTORY {source} WITH {dest}"}
+{"type": "al", "text": "RSYNC {source} TO {dest}"}
+{"type": "al", "text": "BACKUP FILES FROM {source} TO {dest}"}
+{"type": "tool_doc", "tool_id": "Linux.Network.ping/1", "text": "send ICMP ECHO_REQUEST to network hosts"}
+{"type": "tool_spec", "tool_id": "Linux.Network.ping/1", "text": "host: string"}
+{"type": "param_card", "tool_id": "Linux.Network.ping/1", "text": "host: string (required) hostname or IP address to ping"}
+{"type": "example", "tool_id": "Linux.Network.ping/1", "text": "PING HOST {host}"}
+{"type": "example", "tool_id": "Linux.Network.ping/1", "text": "TEST NETWORK CONNECTIVITY TO {host}"}
+{"type": "example", "tool_id": "Linux.Network.ping/1", "text": "IS HOST {host} ALIVE"}
+{"type": "al", "text": "PING HOST {host}"}
+{"type": "al", "text": "TEST NETWORK CONNECTIVITY TO {host}"}
+{"type": "al", "text": "IS HOST {host} ALIVE"}
+{"type": "tool_doc", "tool_id": "Linux.Network.dig/1", "text": "DNS lookup utility"}
+{"type": "tool_spec", "tool_id": "Linux.Network.dig/1", "text": "domain: string"}
+{"type": "param_card", "tool_id": "Linux.Network.dig/1", "text": "domain: string (required) domain name to query"}
+{"type": "example", "tool_id": "Linux.Network.dig/1", "text": "LOOKUP DNS FOR {domain}"}
+{"type": "example", "tool_id": "Linux.Network.dig/1", "text": "DIG DOMAIN {domain}"}
+{"type": "example", "tool_id": "Linux.Network.dig/1", "text": "RESOLVE {domain}"}
+{"type": "al", "text": "LOOKUP DNS FOR {domain}"}
+{"type": "al", "text": "DIG DOMAIN {domain}"}
+{"type": "al", "text": "RESOLVE {domain}"}
+{"type": "al", "text": "NSLOOKUP {domain}"}
+{"type": "tool_doc", "tool_id": "Linux.Iproute2.ip/1", "text": "show / manipulate routing, network devices, interfaces and tunnels"}
+{"type": "tool_spec", "tool_id": "Linux.Iproute2.ip/1", "text": "command: string"}
+{"type": "param_card", "tool_id": "Linux.Iproute2.ip/1", "text": "command: string (required) iproute2 command like addr show or link set"}
+{"type": "example", "tool_id": "Linux.Iproute2.ip/1", "text": "RUN IP ROUTE COMMAND {command}"}
+{"type": "example", "tool_id": "Linux.Iproute2.ip/1", "text": "CONFIGURE NETWORK INTERFACES"}
+{"type": "example", "tool_id": "Linux.Iproute2.ip/1", "text": "SHOW MY IP ADDRESS"}
+{"type": "al", "text": "RUN IP ROUTE COMMAND {command}"}
+{"type": "al", "text": "CONFIGURE NETWORK INTERFACES"}
+{"type": "al", "text": "SHOW MY IP ADDRESS"}
+{"type": "al", "text": "IP ADDRESS SHOW"}
+{"type": "tool_doc", "tool_id": "Linux.Iproute2.ss/1", "text": "utility to investigate sockets"}
+{"type": "tool_spec", "tool_id": "Linux.Iproute2.ss/1", "text": "flags: string"}
+{"type": "param_card", "tool_id": "Linux.Iproute2.ss/1", "text": "flags: string (required) flags like -tlnp"}
+{"type": "example", "tool_id": "Linux.Iproute2.ss/1", "text": "SHOW OPEN PORTS WITH {flags}"}
+{"type": "example", "tool_id": "Linux.Iproute2.ss/1", "text": "LIST NETWORK CONNECTIONS"}
+{"type": "example", "tool_id": "Linux.Iproute2.ss/1", "text": "SS COMMAND WITH {flags}"}
+{"type": "al", "text": "SHOW OPEN PORTS WITH {flags}"}
+{"type": "al", "text": "LIST NETWORK CONNECTIONS"}
+{"type": "al", "text": "SS COMMAND WITH {flags}"}
+{"type": "al", "text": "NETSTAT CONNECTIONS"}
+{"type": "tool_doc", "tool_id": "Linux.OpenSSH.ssh/2", "text": "OpenSSH SSH client remote login program"}
+{"type": "tool_spec", "tool_id": "Linux.OpenSSH.ssh/2", "text": "host: string, user: string"}
+{"type": "param_card", "tool_id": "Linux.OpenSSH.ssh/2", "text": "host: string (required) remote hostname or IP address"}
+{"type": "param_card", "tool_id": "Linux.OpenSSH.ssh/2", "text": "user: string (optional) remote username"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh/2", "text": "SSH TO HOST {host} AS USER {user}"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh/2", "text": "CONNECT REMOTELY TO {host}"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh/2", "text": "LOGIN SECURELY TO {host}"}
+{"type": "al", "text": "SSH TO HOST {host} AS USER {user}"}
+{"type": "al", "text": "CONNECT REMOTELY TO {host}"}
+{"type": "al", "text": "LOGIN SECURELY TO {host}"}
+{"type": "al", "text": "SSH {user} AT {host}"}
+{"type": "tool_doc", "tool_id": "Linux.OpenSSH.scp/2", "text": "OpenSSH secure file copy scp"}
+{"type": "tool_spec", "tool_id": "Linux.OpenSSH.scp/2", "text": "source: string, dest: string"}
+{"type": "param_card", "tool_id": "Linux.OpenSSH.scp/2", "text": "source: string (required) source file or directory"}
+{"type": "param_card", "tool_id": "Linux.OpenSSH.scp/2", "text": "dest: string (required) destination file or directory"}
+{"type": "example", "tool_id": "Linux.OpenSSH.scp/2", "text": "SCP FILE FROM {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.OpenSSH.scp/2", "text": "SECURE COPY {source} TO {dest}"}
+{"type": "example", "tool_id": "Linux.OpenSSH.scp/2", "text": "TRANSFER FILE TO REMOTE {dest}"}
+{"type": "al", "text": "SCP FILE FROM {source} TO {dest}"}
+{"type": "al", "text": "SECURE COPY {source} TO {dest}"}
+{"type": "al", "text": "TRANSFER FILE TO REMOTE {dest}"}
+{"type": "tool_doc", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "authentication key generation, management and conversion"}
+{"type": "tool_spec", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "type: string"}
+{"type": "param_card", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "type: string (required) key type to generate like rsa or ed25519"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "GENERATE SSH KEY OF TYPE {type}"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "CREATE NEW SSH CERTIFICATE"}
+{"type": "example", "tool_id": "Linux.OpenSSH.ssh_keygen/1", "text": "SSH-KEYGEN {type}"}
+{"type": "al", "text": "GENERATE SSH KEY OF TYPE {type}"}
+{"type": "al", "text": "CREATE NEW SSH CERTIFICATE"}
+{"type": "al", "text": "SSH-KEYGEN {type}"}
+{"type": "tool_doc", "tool_id": "Linux.Container.docker_run/2", "text": "run a command in a new docker container"}
+{"type": "tool_spec", "tool_id": "Linux.Container.docker_run/2", "text": "image: string, args: string"}
+{"type": "param_card", "tool_id": "Linux.Container.docker_run/2", "text": "image: string (required) docker image to run"}
+{"type": "param_card", "tool_id": "Linux.Container.docker_run/2", "text": "args: string (optional) arguments or command for the container"}
+{"type": "example", "tool_id": "Linux.Container.docker_run/2", "text": "RUN DOCKER IMAGE {image} WITH ARGS {args}"}
+{"type": "example", "tool_id": "Linux.Container.docker_run/2", "text": "START CONTAINER FROM {image}"}
+{"type": "example", "tool_id": "Linux.Container.docker_run/2", "text": "DEPLOY DOCKER APPLICATION {image}"}
+{"type": "al", "text": "RUN DOCKER IMAGE {image} WITH ARGS {args}"}
+{"type": "al", "text": "START CONTAINER FROM {image}"}
+{"type": "al", "text": "DEPLOY DOCKER APPLICATION {image}"}
+{"type": "tool_doc", "tool_id": "Linux.Container.docker_compose/1", "text": "define and run multi-container docker applications"}
+{"type": "tool_spec", "tool_id": "Linux.Container.docker_compose/1", "text": "command: string"}
+{"type": "param_card", "tool_id": "Linux.Container.docker_compose/1", "text": "command: string (required) compose command like up, down, or build"}
+{"type": "example", "tool_id": "Linux.Container.docker_compose/1", "text": "RUN DOCKER COMPOSE COMMAND {command}"}
+{"type": "example", "tool_id": "Linux.Container.docker_compose/1", "text": "START SERVICES WITH COMPOSE {command}"}
+{"type": "al", "text": "RUN DOCKER COMPOSE COMMAND {command}"}
+{"type": "al", "text": "START SERVICES WITH COMPOSE {command}"}
+{"type": "al", "text": "DOCKER-COMPOSE {command}"}
+{"type": "tool_doc", "tool_id": "Linux.Container.podman/2", "text": "daemonless container engine for developing, managing, and running OCI Containers"}
+{"type": "tool_spec", "tool_id": "Linux.Container.podman/2", "text": "command: string, args: string"}
+{"type": "param_card", "tool_id": "Linux.Container.podman/2", "text": "command: string (required) podman command like run, build, ps"}
+{"type": "param_card", "tool_id": "Linux.Container.podman/2", "text": "args: string (optional) arguments for podman"}
+{"type": "example", "tool_id": "Linux.Container.podman/2", "text": "RUN PODMAN {command} WITH {args}"}
+{"type": "example", "tool_id": "Linux.Container.podman/2", "text": "MANAGE CONTAINERS USING PODMAN {command}"}
+{"type": "al", "text": "RUN PODMAN {command} WITH {args}"}
+{"type": "al", "text": "MANAGE CONTAINERS USING PODMAN {command}"}
+{"type": "tool_doc", "tool_id": "Linux.Vcs.git/2", "text": "the stupid content tracker git version control"}
+{"type": "tool_spec", "tool_id": "Linux.Vcs.git/2", "text": "command: string, args: string"}
+{"type": "param_card", "tool_id": "Linux.Vcs.git/2", "text": "command: string (required) git command like commit, push, pull, log"}
+{"type": "param_card", "tool_id": "Linux.Vcs.git/2", "text": "args: string (optional) arguments for the git command"}
+{"type": "example", "tool_id": "Linux.Vcs.git/2", "text": "RUN GIT {command} WITH ARGS {args}"}
+{"type": "example", "tool_id": "Linux.Vcs.git/2", "text": "COMMIT CODE CHANGES WITH GIT {command}"}
+{"type": "example", "tool_id": "Linux.Vcs.git/2", "text": "PUBLISH REPO TO GITHUB USING {command}"}
+{"type": "al", "text": "RUN GIT {command} WITH ARGS {args}"}
+{"type": "al", "text": "COMMIT CODE CHANGES WITH GIT {command}"}
+{"type": "al", "text": "PUBLISH REPO TO GITHUB USING {command}"}
+{"type": "tool_doc", "tool_id": "Linux.Build.make/1", "text": "GNU make utility to maintain groups of programs"}
+{"type": "tool_spec", "tool_id": "Linux.Build.make/1", "text": "target: string"}
+{"type": "param_card", "tool_id": "Linux.Build.make/1", "text": "target: string (optional) make target like all, clean, install"}
+{"type": "example", "tool_id": "Linux.Build.make/1", "text": "BUILD PROJECT WITH MAKE {target}"}
+{"type": "example", "tool_id": "Linux.Build.make/1", "text": "COMPILE SOURCE CODE WITH MAKE"}
+{"type": "al", "text": "BUILD PROJECT WITH MAKE {target}"}
+{"type": "al", "text": "COMPILE SOURCE CODE WITH MAKE"}
+{"type": "al", "text": "RUN MAKE FOR {target}"}
+{"type": "tool_doc", "tool_id": "Linux.Lang.python/2", "text": "an interpreted, interactive, object-oriented programming language"}
+{"type": "tool_spec", "tool_id": "Linux.Lang.python/2", "text": "script: string, args: string"}
+{"type": "param_card", "tool_id": "Linux.Lang.python/2", "text": "script: string (required) python script file to run or -c for inline"}
+{"type": "param_card", "tool_id": "Linux.Lang.python/2", "text": "args: string (optional) arguments passed to python"}
+{"type": "example", "tool_id": "Linux.Lang.python/2", "text": "RUN PYTHON SCRIPT {script} WITH {args}"}
+{"type": "example", "tool_id": "Linux.Lang.python/2", "text": "EXECUTE PYTHON PROGRAM {script}"}
+{"type": "al", "text": "RUN PYTHON SCRIPT {script} WITH {args}"}
+{"type": "al", "text": "EXECUTE PYTHON PROGRAM {script}"}
+{"type": "al", "text": "PYTHON3 {script}"}
+{"type": "tool_doc", "tool_id": "Linux.Lang.nodejs/2", "text": "server-side JavaScript runtime environment node"}
+{"type": "tool_spec", "tool_id": "Linux.Lang.nodejs/2", "text": "script: string, args: string"}
+{"type": "param_card", "tool_id": "Linux.Lang.nodejs/2", "text": "script: string (required) javascript file to run"}
+{"type": "param_card", "tool_id": "Linux.Lang.nodejs/2", "text": "args: string (optional) arguments passed to node"}
+{"type": "example", "tool_id": "Linux.Lang.nodejs/2", "text": "RUN NODE SCRIPT {script} WITH {args}"}
+{"type": "example", "tool_id": "Linux.Lang.nodejs/2", "text": "EXECUTE JAVASCRIPT FILE {script}"}
+{"type": "example", "tool_id": "Linux.Lang.nodejs/2", "text": "NODEJS {script}"}
+{"type": "al", "text": "RUN NODE SCRIPT {script} WITH {args}"}
+{"type": "al", "text": "EXECUTE JAVASCRIPT FILE {script}"}
+{"type": "al", "text": "NODEJS {script}"}
+{"type": "tool_doc", "tool_id": "Linux.Pkg.npm/1", "text": "node package manager"}
+{"type": "tool_spec", "tool_id": "Linux.Pkg.npm/1", "text": "command: string"}
+{"type": "param_card", "tool_id": "Linux.Pkg.npm/1", "text": "command: string (required) npm command like install, run, build"}
+{"type": "example", "tool_id": "Linux.Pkg.npm/1", "text": "NPM {command}"}
+{"type": "example", "tool_id": "Linux.Pkg.npm/1", "text": "INSTALL JS DEPENDENCIES USING NPM {command}"}
+{"type": "al", "text": "NPM {command}"}
+{"type": "al", "text": "INSTALL JS DEPENDENCIES USING NPM {command}"}
+{"type": "tool_doc", "tool_id": "Linux.Procps.ps/1", "text": "report a snapshot of the current processes"}
+{"type": "tool_spec", "tool_id": "Linux.Procps.ps/1", "text": "flags: string"}
+{"type": "param_card", "tool_id": "Linux.Procps.ps/1", "text": "flags: string (required) process flags like aux or -ef"}
+{"type": "example", "tool_id": "Linux.Procps.ps/1", "text": "LIST RUNNING PROCESSES WITH {flags}"}
+{"type": "example", "tool_id": "Linux.Procps.ps/1", "text": "PS {flags}"}
+{"type": "example", "tool_id": "Linux.Procps.ps/1", "text": "CHECK WHAT IS RUNNING ON THE SYSTEM"}
+{"type": "al", "text": "LIST RUNNING PROCESSES WITH {flags}"}
+{"type": "al", "text": "PS {flags}"}
+{"type": "al", "text": "CHECK WHAT IS RUNNING ON THE SYSTEM"}
+{"type": "tool_doc", "tool_id": "Linux.Procps.top/0", "text": "display Linux processes and dynamic real-time view of a running system"}
+{"type": "tool_spec", "tool_id": "Linux.Procps.top/0", "text": ""}
+{"type": "example", "tool_id": "Linux.Procps.top/0", "text": "SHOW RUNNING PROCESSES WITH TOP"}
+{"type": "example", "tool_id": "Linux.Procps.top/0", "text": "MONITOR SYSTEM TASKS"}
+{"type": "example", "tool_id": "Linux.Procps.top/0", "text": "VIEW HTOP OR TOP"}
+{"type": "al", "text": "SHOW RUNNING PROCESSES WITH TOP"}
+{"type": "al", "text": "MONITOR SYSTEM TASKS"}
+{"type": "al", "text": "VIEW HTOP OR TOP"}
+{"type": "tool_doc", "tool_id": "Linux.Procps.kill/1", "text": "kill terminate or stop a running process by pid or send signal"}
+{"type": "tool_spec", "tool_id": "Linux.Procps.kill/1", "text": "pid: integer"}
+{"type": "param_card", "tool_id": "Linux.Procps.kill/1", "text": "pid: integer (required) process ID to terminate"}
+{"type": "example", "tool_id": "Linux.Procps.kill/1", "text": "KILL PROCESS {pid}"}
+{"type": "example", "tool_id": "Linux.Procps.kill/1", "text": "TERMINATE PROCESS {pid}"}
+{"type": "example", "tool_id": "Linux.Procps.kill/1", "text": "STOP APPLICATION WITH PID {pid}"}
+{"type": "example", "tool_id": "Linux.Procps.kill/1", "text": "KILLALL OR PKILL {pid}"}
+{"type": "al", "text": "KILL PROCESS {pid}"}
+{"type": "al", "text": "TERMINATE PROCESS {pid}"}
+{"type": "al", "text": "STOP APPLICATION WITH PID {pid}"}
+{"type": "al", "text": "KILLALL OR PKILL {pid}"}
+{"type": "tool_doc", "tool_id": "Linux.Procps.watch/2", "text": "execute a program periodically, showing output fullscreen"}
+{"type": "tool_spec", "tool_id": "Linux.Procps.watch/2", "text": "interval: integer, command: string"}
+{"type": "param_card", "tool_id": "Linux.Procps.watch/2", "text": "interval: integer (optional) seconds between updates"}
+{"type": "param_card", "tool_id": "Linux.Procps.watch/2", "text": "command: string (required) command to watch"}
+{"type": "example", "tool_id": "Linux.Procps.watch/2", "text": "WATCH COMMAND {command} EVERY {interval} SECONDS"}
+{"type": "example", "tool_id": "Linux.Procps.watch/2", "text": "MONITOR {command} CONSTANTLY"}
+{"type": "al", "text": "WATCH COMMAND {command} EVERY {interval} SECONDS"}
+{"type": "al", "text": "MONITOR {command} CONSTANTLY"}
+{"type": "tool_doc", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "restart a systemd service daemon unit"}
+{"type": "tool_spec", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "name: string"}
+{"type": "param_card", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "name: string (required) name of the service to restart"}
+{"type": "example", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "RESTART SERVICE {name}"}
+{"type": "example", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "SYSTEMCTL RESTART {name}"}
+{"type": "example", "tool_id": "Linux.Systemd.systemctl_restart/1", "text": "REBOOT BACKGROUND DAEMON {name}"}
+{"type": "al", "text": "RESTART SERVICE {name}"}
+{"type": "al", "text": "SYSTEMCTL RESTART {name}"}
+{"type": "al", "text": "REBOOT BACKGROUND DAEMON {name}"}
+{"type": "tool_doc", "tool_id": "Linux.Systemd.journalctl/1", "text": "query the systemd journal logs"}
+{"type": "tool_spec", "tool_id": "Linux.Systemd.journalctl/1", "text": "flags: string"}
+{"type": "param_card", "tool_id": "Linux.Systemd.journalctl/1", "text": "flags: string (optional) journalctl flags like -u for unit or -f for follow"}
+{"type": "example", "tool_id": "Linux.Systemd.journalctl/1", "text": "READ SYSTEM LOGS WITH {flags}"}
+{"type": "example", "tool_id": "Linux.Systemd.journalctl/1", "text": "CHECK JOURNALCTL FOR {flags}"}
+{"type": "example", "tool_id": "Linux.Systemd.journalctl/1", "text": "VIEW SYSTEM ERRORS"}
+{"type": "al", "text": "READ SYSTEM LOGS WITH {flags}"}
+{"type": "al", "text": "CHECK JOURNALCTL FOR {flags}"}
+{"type": "al", "text": "VIEW SYSTEM ERRORS"}
+{"type": "al", "text": "DMESG OR JOURNAL LOGS"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.grep/2", "text": "search text using grep find regex pattern in file"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.grep/2", "text": "pattern: string, file: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.grep/2", "text": "pattern: string (required) regular expression or string to search for"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.grep/2", "text": "file: string (required) path to the file to search in"}
+{"type": "example", "tool_id": "Linux.Coreutils.grep/2", "text": "SEARCH TEXT {pattern} IN FILE {file}"}
+{"type": "example", "tool_id": "Linux.Coreutils.grep/2", "text": "FIND STRING {pattern} INSIDE {file}"}
+{"type": "example", "tool_id": "Linux.Coreutils.grep/2", "text": "RIPGREP OR GREP {pattern} IN {file}"}
+{"type": "al", "text": "SEARCH TEXT {pattern} IN FILE {file}"}
+{"type": "al", "text": "FIND STRING {pattern} INSIDE {file}"}
+{"type": "al", "text": "RIPGREP OR GREP {pattern} IN {file}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.sed/2", "text": "stream editor for filtering and transforming text"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.sed/2", "text": "script: string, file: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.sed/2", "text": "script: string (required) sed script commands like s/foo/bar/g"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.sed/2", "text": "file: string (required) file to process"}
+{"type": "example", "tool_id": "Linux.Coreutils.sed/2", "text": "REPLACE TEXT IN {file} USING {script}"}
+{"type": "example", "tool_id": "Linux.Coreutils.sed/2", "text": "MODIFY FILE CONTENT WITH SED {script}"}
+{"type": "al", "text": "REPLACE TEXT IN {file} USING {script}"}
+{"type": "al", "text": "MODIFY FILE CONTENT WITH SED {script}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.awk/2", "text": "pattern scanning and processing language"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.awk/2", "text": "script: string, file: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.awk/2", "text": "script: string (required) awk program code"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.awk/2", "text": "file: string (required) file to process"}
+{"type": "example", "tool_id": "Linux.Coreutils.awk/2", "text": "PROCESS COLUMNS IN {file} WITH AWK {script}"}
+{"type": "example", "tool_id": "Linux.Coreutils.awk/2", "text": "PARSE TEXT WITH {script}"}
+{"type": "example", "tool_id": "Linux.Coreutils.awk/2", "text": "EXTRACT FIELDS USING AWK {script}"}
+{"type": "al", "text": "PROCESS COLUMNS IN {file} WITH AWK {script}"}
+{"type": "al", "text": "PARSE TEXT WITH {script}"}
+{"type": "al", "text": "EXTRACT FIELDS USING AWK {script}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.jq/2", "text": "Command-line JSON processor"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.jq/2", "text": "filter: string, file: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.jq/2", "text": "filter: string (required) jq filter string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.jq/2", "text": "file: string (required) JSON file to process"}
+{"type": "example", "tool_id": "Linux.Coreutils.jq/2", "text": "PARSE JSON {file} WITH FILTER {filter}"}
+{"type": "example", "tool_id": "Linux.Coreutils.jq/2", "text": "EXTRACT JSON FIELDS USING JQ {filter}"}
+{"type": "al", "text": "PARSE JSON {file} WITH FILTER {filter}"}
+{"type": "al", "text": "EXTRACT JSON FIELDS USING JQ {filter}"}
+{"type": "al", "text": "YQ OR JQ OVER {file}"}
+{"type": "tool_doc", "tool_id": "Linux.Archive.tar/2", "text": "compress and archive a directory into a tar gzip bzip2 xz file"}
+{"type": "tool_spec", "tool_id": "Linux.Archive.tar/2", "text": "path: string, archive: string"}
+{"type": "param_card", "tool_id": "Linux.Archive.tar/2", "text": "path: string (required) directory to compress"}
+{"type": "param_card", "tool_id": "Linux.Archive.tar/2", "text": "archive: string (required) output tar file name"}
+{"type": "example", "tool_id": "Linux.Archive.tar/2", "text": "COMPRESS DIRECTORY {path} INTO FILE {archive}"}
+{"type": "example", "tool_id": "Linux.Archive.tar/2", "text": "ARCHIVE EVERYTHING IN {path}"}
+{"type": "example", "tool_id": "Linux.Archive.tar/2", "text": "TAR AND GZIP FOLDER {path} TO {archive}"}
+{"type": "al", "text": "COMPRESS DIRECTORY {path} INTO FILE {archive}"}
+{"type": "al", "text": "ARCHIVE EVERYTHING IN {path}"}
+{"type": "al", "text": "TAR AND GZIP FOLDER {path} TO {archive}"}
+{"type": "tool_doc", "tool_id": "Linux.User.useradd/1", "text": "create a new user or update default new user information"}
+{"type": "tool_spec", "tool_id": "Linux.User.useradd/1", "text": "username: string"}
+{"type": "param_card", "tool_id": "Linux.User.useradd/1", "text": "username: string (required) name of the new user"}
+{"type": "example", "tool_id": "Linux.User.useradd/1", "text": "CREATE NEW USER {username}"}
+{"type": "example", "tool_id": "Linux.User.useradd/1", "text": "ADD SYSTEM USER {username}"}
+{"type": "al", "text": "CREATE NEW USER {username}"}
+{"type": "al", "text": "ADD SYSTEM USER {username}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.chmod/2", "text": "change file mode bits or permissions"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.chmod/2", "text": "mode: string, path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.chmod/2", "text": "mode: string (required) permission mode like 755 or +x"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.chmod/2", "text": "path: string (required) file or directory path"}
+{"type": "example", "tool_id": "Linux.Coreutils.chmod/2", "text": "CHMOD FILE {path} TO {mode}"}
+{"type": "example", "tool_id": "Linux.Coreutils.chmod/2", "text": "CHANGE PERMISSIONS OF {path} TO {mode}"}
+{"type": "example", "tool_id": "Linux.Coreutils.chmod/2", "text": "MAKE SCRIPT EXECUTABLE {path}"}
+{"type": "al", "text": "CHMOD FILE {path} TO {mode}"}
+{"type": "al", "text": "CHANGE PERMISSIONS OF {path} TO {mode}"}
+{"type": "al", "text": "MAKE SCRIPT EXECUTABLE {path}"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.chown/2", "text": "change file owner and group"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.chown/2", "text": "owner: string, path: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.chown/2", "text": "owner: string (required) user and group owner"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.chown/2", "text": "path: string (required) file or directory path"}
+{"type": "example", "tool_id": "Linux.Coreutils.chown/2", "text": "CHOWN FILE {path} TO {owner}"}
+{"type": "example", "tool_id": "Linux.Coreutils.chown/2", "text": "CHANGE OWNER OF {path} TO {owner}"}
+{"type": "al", "text": "CHOWN FILE {path} TO {owner}"}
+{"type": "al", "text": "CHANGE OWNER OF {path} TO {owner}"}
+{"type": "tool_doc", "tool_id": "Linux.Editor.vim/1", "text": "Vi IMproved, a programmer's text editor"}
+{"type": "tool_spec", "tool_id": "Linux.Editor.vim/1", "text": "file: string"}
+{"type": "param_card", "tool_id": "Linux.Editor.vim/1", "text": "file: string (required) file to edit"}
+{"type": "example", "tool_id": "Linux.Editor.vim/1", "text": "OPEN TEXT EDITOR FOR {file}"}
+{"type": "example", "tool_id": "Linux.Editor.vim/1", "text": "EDIT {file} WITH VIM NANO OR VI"}
+{"type": "example", "tool_id": "Linux.Editor.vim/1", "text": "MODIFY {file} MANUALLY"}
+{"type": "al", "text": "OPEN TEXT EDITOR FOR {file}"}
+{"type": "al", "text": "EDIT {file} WITH VIM NANO OR VI"}
+{"type": "al", "text": "MODIFY {file} MANUALLY"}
+{"type": "tool_doc", "tool_id": "Linux.Coreutils.md5sum/1", "text": "compute and check MD5 message digest"}
+{"type": "tool_spec", "tool_id": "Linux.Coreutils.md5sum/1", "text": "file: string"}
+{"type": "param_card", "tool_id": "Linux.Coreutils.md5sum/1", "text": "file: string (required) file to hash"}
+{"type": "example", "tool_id": "Linux.Coreutils.md5sum/1", "text": "COMPUTE HASH FOR {file}"}
+{"type": "example", "tool_id": "Linux.Coreutils.md5sum/1", "text": "GET MD5SUM OR SHA256SUM FOR {file}"}
+{"type": "example", "tool_id": "Linux.Coreutils.md5sum/1", "text": "CALCULATE CHECKSUM OF {file}"}
+{"type": "al", "text": "COMPUTE HASH FOR {file}"}
+{"type": "al", "text": "GET MD5SUM OR SHA256SUM FOR {file}"}
+{"type": "al", "text": "CALCULATE CHECKSUM OF {file}"}
+{"type": "slot_card", "text": "archive={archive}"}
+{"type": "slot_card", "text": "args={args}"}
+{"type": "slot_card", "text": "command={command}"}
+{"type": "slot_card", "text": "dest={dest}"}
+{"type": "slot_card", "text": "domain={domain}"}
+{"type": "slot_card", "text": "file={file}"}
+{"type": "slot_card", "text": "files={files}"}
+{"type": "slot_card", "text": "filter={filter}"}
+{"type": "slot_card", "text": "flags={flags}"}
+{"type": "slot_card", "text": "host={host}"}
+{"type": "slot_card", "text": "image={image}"}
+{"type": "slot_card", "text": "interval={interval}"}
+{"type": "slot_card", "text": "mode={mode}"}
+{"type": "slot_card", "text": "name={name}"}
+{"type": "slot_card", "text": "owner={owner}"}
+{"type": "slot_card", "text": "package={package}"}
+{"type": "slot_card", "text": "path={path}"}
+{"type": "slot_card", "text": "pattern={pattern}"}
+{"type": "slot_card", "text": "pid={pid}"}
+{"type": "slot_card", "text": "schedule={schedule}"}
+{"type": "slot_card", "text": "script={script}"}
+{"type": "slot_card", "text": "source={source}"}
+{"type": "slot_card", "text": "target={target}"}
+{"type": "slot_card", "text": "text={text}"}
+{"type": "slot_card", "text": "time={time}"}
+{"type": "slot_card", "text": "type={type}"}
+{"type": "slot_card", "text": "url={url}"}
+{"type": "slot_card", "text": "user={user}"}
+{"type": "slot_card", "text": "username={username}"}

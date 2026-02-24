@@ -12,7 +12,7 @@ half = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-ort = { version = "=2.0.0-rc.9", default-features = false, features = ["load-dynamic"] }
+ort = { version = "=2.0.0-rc.11", default-features = false, features = ["load-dynamic"] }
 
 [dev-dependencies]
 approx = "0.5"

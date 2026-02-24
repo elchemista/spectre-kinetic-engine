@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "Elchemista.Blog.create_post/2",
+      "module": "Elchemista.Blog",
+      "name": "create_post",
+      "arity": 2,
+      "doc": "Creates a new blog post on elchemista.com with a given title and content body",
+      "spec": "create_post(title :: String.t(), body :: String.t()) :: {:ok, Post.t()} | {:error, term()}",
+      "args": [
+        { "name": "title", "type": "String.t()", "required": true, "aliases": ["headline","subject"] },
+        { "name": "body",  "type": "String.t()", "required": true, "aliases": ["content","text","post_body"] }
+      ],
+      "examples": [
+        "WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"
+      ]
+    },
+    {
+      "id": "Payments.Stripe.create_payment_link/1",
+      "module": "Payments.Stripe",
+      "name": "create_payment_link",
+      "arity": 3,
+      "doc": "Generates a new checkout session on Stripe for a given product name, amount, and currency",
+      "spec": "create_payment_link(amount :: integer(), currency :: String.t(), name :: String.t())",
+      "args": [
+        { "name": "amount", "type": "integer()", "required": true, "aliases": ["price","cost"] },
+        { "name": "currency", "type": "String.t()", "required": true, "aliases": ["coin"] },
+        { "name": "name", "type": "String.t()", "required": true, "aliases": ["item","product_name"] }
+      ],
+      "examples": [
+        "CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"
+      ]
+    }
+  ]
+}
