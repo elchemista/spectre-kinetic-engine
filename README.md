@@ -350,4 +350,4 @@ echo '{"al":"INSTALL PACKAGE nginx","slots":{"package":"nginx"}}' | \
 
 ## License
 
-TBD.
+Apache License 2.0
