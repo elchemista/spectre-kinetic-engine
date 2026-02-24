@@ -1,6 +1,7 @@
 # spectre-kinetic
 
 > **Deterministic, zero-LLM action dispatch for agents — powered by static embeddings and a compact Action Language.**
+> This library is designed to be used as a FFI binding in Elixir applications as part of the Spectre framework. (Supervised Process Event Controller for Transition & Reasoning with Elixir.) But the framework is not ready yet.
 
 ---
 
