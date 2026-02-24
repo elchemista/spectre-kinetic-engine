@@ -48,6 +48,99 @@ impl CompiledRegistry {
         Ok(())
     }
 
+    /// Dynamically add a new action definition to this compiled registry.
+    ///
+    /// This embeds a new tool-card and param-cards, appends their rows to the
+    /// existing matrices, and updates tool metadata with a fresh param range.
+    pub fn add_action(&mut self, embedder: &StaticEmbedder, action: ToolDef) -> Result<(), CoreError> {
+        if embedder.dim() != self.dims {
+            return Err(CoreError::DimensionMismatch {
+                expected: self.dims,
+                actual: embedder.dim(),
+            });
+        }
+
+        if self.tools.iter().any(|t| t.id == action.id) {
+            return Err(CoreError::RegistryLoad(format!(
+                "action already exists in registry: {}",
+                action.id
+            )));
+        }
+
+        let tool_vec = embedder.encode_single(&build_tool_card(&action));
+        if tool_vec.len() != self.dims {
+            return Err(CoreError::DimensionMismatch {
+                expected: self.dims,
+                actual: tool_vec.len(),
+            });
+        }
+
+        let param_cards: Vec<String> = action
+            .args
+            .iter()
+            .map(|arg| build_param_card(&action.name, arg))
+            .collect();
+        let param_refs: Vec<&str> = param_cards.iter().map(|s| s.as_str()).collect();
+        let param_vecs = if param_refs.is_empty() {
+            Vec::new()
+        } else {
+            embedder.encode_batch(&param_refs)
+        };
+
+        for vec in &param_vecs {
+            if vec.len() != self.dims {
+                return Err(CoreError::DimensionMismatch {
+                    expected: self.dims,
+                    actual: vec.len(),
+                });
+            }
+        }
+
+        let tool_rows = vec![tool_vec];
+        self.tool_embeddings = append_rows(&self.tool_embeddings, &tool_rows, self.dims)?;
+
+        let param_start = self.param_embeddings.nrows();
+        self.param_embeddings = append_rows(&self.param_embeddings, &param_vecs, self.dims)?;
+        let param_end = self.param_embeddings.nrows();
+
+        self.tools.push(ToolMeta {
+            id: action.id,
+            module: action.module,
+            name: action.name,
+            arity: action.arity,
+            args: action.args,
+            param_range: (param_start, param_end),
+        });
+
+        Ok(())
+    }
+
+    /// Delete an action from this compiled registry by action ID.
+    ///
+    /// Returns `Ok(true)` when an action was removed, `Ok(false)` when the
+    /// action does not exist.
+    pub fn delete_action(&mut self, action_id: &str) -> Result<bool, CoreError> {
+        let Some(tool_idx) = self.tools.iter().position(|t| t.id == action_id) else {
+            return Ok(false);
+        };
+
+        let removed_tool = self.tools.remove(tool_idx);
+        self.tool_embeddings = remove_row_range(&self.tool_embeddings, tool_idx, tool_idx + 1)?;
+
+        let (removed_start, removed_end) = removed_tool.param_range;
+        let removed_param_count = removed_end.saturating_sub(removed_start);
+        self.param_embeddings = remove_row_range(&self.param_embeddings, removed_start, removed_end)?;
+
+        for tool in &mut self.tools {
+            let (start, end) = tool.param_range;
+            if start >= removed_end {
+                tool.param_range = (start - removed_param_count, end - removed_param_count);
+            }
+        }
+
+        Ok(true)
+    }
+
     /// Deserialize from raw bytes.
     fn from_bytes(data: &[u8]) -> Result<Self, CoreError> {
         let mut cursor = std::io::Cursor::new(data);
@@ -76,8 +169,8 @@ impl CompiledRegistry {
         // Read tool metadata JSON block
         let meta_len = read_u32(&mut cursor)? as usize;
         let meta_json = read_string(&mut cursor, meta_len)?;
-        let tools: Vec<ToolMeta> =
-            serde_json::from_str(&meta_json).map_err(|e| CoreError::RegistryLoad(format!("tool metadata JSON: {e}")))?;
+        let tools: Vec<ToolMeta> = serde_json::from_str(&meta_json)
+            .map_err(|e| CoreError::RegistryLoad(format!("tool metadata JSON: {e}")))?;
 
         // Read tool embedding matrix (f16)
         let tool_embeddings = read_f16_matrix(&mut cursor, tool_count, dims)?;
@@ -161,7 +254,7 @@ pub fn build_registry(
     let dims = embedder.dim();
 
     // Build tool-card texts and embed them
-    let tool_cards: Vec<String> = registry.tools.iter().map(build_tool_card).collect();
+    let tool_cards: Vec<String> = registry.actions.iter().map(build_tool_card).collect();
     let tool_card_refs: Vec<&str> = tool_cards.iter().map(|s| s.as_str()).collect();
     let tool_vecs = embedder.encode_batch(&tool_card_refs);
 
@@ -171,7 +264,7 @@ pub fn build_registry(
     let mut param_cards: Vec<String> = Vec::new();
     let mut tools_meta: Vec<ToolMeta> = Vec::new();
 
-    for tool_def in &registry.tools {
+    for tool_def in &registry.actions {
         let param_start = param_cards.len();
         for arg in &tool_def.args {
             param_cards.push(build_param_card(&tool_def.name, arg));
@@ -210,7 +303,10 @@ pub fn build_registry(
 
 /// Build a tool-card text string for embedding.
 fn build_tool_card(tool: &ToolDef) -> String {
-    let mut card = format!("{}.{}/{}\nDOC: {}\nSPEC: {}", tool.module, tool.name, tool.arity, tool.doc, tool.spec);
+    let mut card = format!(
+        "{}.{}/{}\nDOC: {}\nSPEC: {}",
+        tool.module, tool.name, tool.arity, tool.doc, tool.spec
+    );
     if let Some(example) = tool.examples.first() {
         card.push_str("\nEX: ");
         card.push_str(example);
@@ -239,6 +335,59 @@ fn vecs_to_array2(vecs: &[Vec<f32>], dims: usize) -> Result<Array2<f32>, CoreErr
     let flat: Vec<f32> = vecs.iter().flat_map(|v| v.iter().copied()).collect();
     Array2::from_shape_vec((vecs.len(), dims), flat)
         .map_err(|e| CoreError::RegistryLoad(format!("failed to build embedding matrix: {e}")))
+}
+
+/// Append one or more rows to an existing matrix.
+fn append_rows(matrix: &Array2<f32>, rows: &[Vec<f32>], dims: usize) -> Result<Array2<f32>, CoreError> {
+    if rows.is_empty() {
+        return Ok(matrix.clone());
+    }
+
+    for row in rows {
+        if row.len() != dims {
+            return Err(CoreError::DimensionMismatch {
+                expected: dims,
+                actual: row.len(),
+            });
+        }
+    }
+
+    let new_rows = matrix.nrows() + rows.len();
+    let mut flat = Vec::with_capacity(new_rows * dims);
+    flat.extend(matrix.iter().copied());
+    for row in rows {
+        flat.extend(row.iter().copied());
+    }
+
+    Array2::from_shape_vec((new_rows, dims), flat)
+        .map_err(|e| CoreError::RegistryLoad(format!("failed to append embedding rows: {e}")))
+}
+
+/// Remove a contiguous row range `[start, end)` from a matrix.
+fn remove_row_range(matrix: &Array2<f32>, start: usize, end: usize) -> Result<Array2<f32>, CoreError> {
+    if start > end || end > matrix.nrows() {
+        return Err(CoreError::RegistryLoad(format!(
+            "invalid row range [{start}, {end}) for matrix with {} rows",
+            matrix.nrows()
+        )));
+    }
+
+    if start == end {
+        return Ok(matrix.clone());
+    }
+
+    let dims = matrix.ncols();
+    let new_rows = matrix.nrows() - (end - start);
+    let mut flat = Vec::with_capacity(new_rows * dims);
+
+    for row_idx in 0..matrix.nrows() {
+        if row_idx < start || row_idx >= end {
+            flat.extend(matrix.row(row_idx).iter().copied());
+        }
+    }
+
+    Array2::from_shape_vec((new_rows, dims), flat)
+        .map_err(|e| CoreError::RegistryLoad(format!("failed to remove embedding rows: {e}")))
 }
 
 // --- Binary I/O helpers ---
@@ -271,8 +420,7 @@ fn read_f16_matrix(cursor: &mut std::io::Cursor<&[u8]>, rows: usize, cols: usize
         .map(|b| f16::from_le_bytes([b[0], b[1]]).to_f32())
         .collect();
 
-    Array2::from_shape_vec((rows, cols), floats)
-        .map_err(|e| CoreError::RegistryLoad(format!("f16 matrix shape: {e}")))
+    Array2::from_shape_vec((rows, cols), floats).map_err(|e| CoreError::RegistryLoad(format!("f16 matrix shape: {e}")))
 }
 
 fn write_u32(buf: &mut Vec<u8>, val: u32) -> Result<(), CoreError> {
@@ -309,6 +457,7 @@ mod tests {
                         arg_type: "String.t()".into(),
                         required: true,
                         aliases: vec!["TEXT".into()],
+                        default: None,
                     }],
                     param_range: (0, 1),
                 },
@@ -323,12 +472,14 @@ mod tests {
                             arg_type: "integer()".into(),
                             required: true,
                             aliases: Vec::new(),
+                            default: None,
                         },
                         ArgDef {
                             name: "b".into(),
                             arg_type: "String.t()".into(),
                             required: false,
                             aliases: Vec::new(),
+                            default: None,
                         },
                     ],
                     param_range: (1, 3),
@@ -372,5 +523,93 @@ mod tests {
         assert!(card.contains("DOC: Creates a thing"));
         assert!(card.contains("SPEC: create(a, b) :: :ok"));
         assert!(card.contains("EX: CREATE THING WITH: A={a}"));
+    }
+
+    #[test]
+    fn delete_action_should_reindex_param_ranges() {
+        let mut registry = CompiledRegistry {
+            tools: vec![
+                ToolMeta {
+                    id: "Mod.a/1".into(),
+                    module: "Mod".into(),
+                    name: "a".into(),
+                    arity: 1,
+                    args: vec![ArgDef {
+                        name: "p1".into(),
+                        arg_type: "String.t()".into(),
+                        required: true,
+                        aliases: Vec::new(),
+                        default: None,
+                    }],
+                    param_range: (0, 1),
+                },
+                ToolMeta {
+                    id: "Mod.b/2".into(),
+                    module: "Mod".into(),
+                    name: "b".into(),
+                    arity: 2,
+                    args: vec![
+                        ArgDef {
+                            name: "p2".into(),
+                            arg_type: "integer()".into(),
+                            required: true,
+                            aliases: Vec::new(),
+                            default: None,
+                        },
+                        ArgDef {
+                            name: "p3".into(),
+                            arg_type: "String.t()".into(),
+                            required: false,
+                            aliases: Vec::new(),
+                            default: None,
+                        },
+                    ],
+                    param_range: (1, 3),
+                },
+                ToolMeta {
+                    id: "Mod.c/1".into(),
+                    module: "Mod".into(),
+                    name: "c".into(),
+                    arity: 1,
+                    args: vec![ArgDef {
+                        name: "p4".into(),
+                        arg_type: "String.t()".into(),
+                        required: true,
+                        aliases: Vec::new(),
+                        default: None,
+                    }],
+                    param_range: (3, 4),
+                },
+            ],
+            dims: 2,
+            tokenizer_hash: "tok".into(),
+            tool_embeddings: Array2::from_shape_vec((3, 2), vec![1.0, 0.0, 0.0, 1.0, 0.5, 0.5]).unwrap(),
+            param_embeddings: Array2::from_shape_vec((4, 2), vec![1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0]).unwrap(),
+            slot_card_embeddings: None,
+            slot_card_labels: None,
+        };
+
+        let deleted = registry.delete_action("Mod.b/2").unwrap();
+        assert!(deleted);
+        assert_eq!(registry.tools.len(), 2);
+        assert_eq!(registry.tool_embeddings.nrows(), 2);
+        assert_eq!(registry.param_embeddings.nrows(), 2);
+        assert_eq!(registry.tools[0].id, "Mod.a/1");
+        assert_eq!(registry.tools[0].param_range, (0, 1));
+        assert_eq!(registry.tools[1].id, "Mod.c/1");
+        assert_eq!(registry.tools[1].param_range, (1, 2));
+
+        let deleted_again = registry.delete_action("Mod.b/2").unwrap();
+        assert!(!deleted_again);
+    }
+
+    #[test]
+    fn remove_row_range_should_remove_middle_rows() {
+        let matrix = Array2::from_shape_vec((4, 2), vec![1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0]).unwrap();
+        let out = remove_row_range(&matrix, 1, 3).unwrap();
+
+        assert_eq!(out.nrows(), 2);
+        assert_eq!(out[[0, 0]], 1.0);
+        assert_eq!(out[[1, 0]], 4.0);
     }
 }

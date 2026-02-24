@@ -189,7 +189,7 @@ fn cmd_build_registry(model_dir: &str, registry_path: &str, out_path: &str) -> R
     let registry_json = std::fs::read_to_string(registry_path).context("failed to read registry JSON")?;
     let registry: spectre_core::types::ToolRegistry =
         serde_json::from_str(&registry_json).context("failed to parse registry JSON")?;
-    eprintln!("  {} tools loaded", registry.tools.len());
+    eprintln!("  {} actions loaded", registry.actions.len());
 
     eprintln!("Building compiled registry...");
     let compiled = spectre_core::registry::build_registry(&embedder, &registry, &meta.tokenizer_hash)
@@ -326,7 +326,7 @@ fn cmd_extract_dict(
         let registry: spectre_core::types::ToolRegistry =
             serde_json::from_str(&registry_json).context("failed to parse registry JSON")?;
 
-        for tool in registry.tools.iter() {
+        for tool in registry.actions.iter() {
             for part in split_tokens(&tool.module) {
                 let uw = part.to_uppercase();
                 if uw.len() >= 2 {

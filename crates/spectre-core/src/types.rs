@@ -32,13 +32,17 @@ pub struct PackMetadata {
 // Tool registry JSON (input from Elixir exporter)
 // ---------------------------------------------------------------------------
 
-/// Top-level tool registry as exported by the Elixir Mix task.
+/// Top-level action registry as exported by the Elixir Mix task.
+///
+/// Accepts both `"actions"` and the legacy `"tools"` key for backwards compatibility.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolRegistry {
     /// Schema version (currently 1).
     pub version: u32,
-    /// List of tool definitions.
-    pub tools: Vec<ToolDef>,
+    /// List of action definitions.
+    /// Accepts both `"actions"` (preferred) and `"tools"` (legacy) in JSON.
+    #[serde(alias = "tools")]
+    pub actions: Vec<ToolDef>,
 }
 
 /// Definition of a single tool/function/API.
@@ -76,6 +80,9 @@ pub struct ArgDef {
     /// Known aliases that may appear in AL slot names.
     #[serde(default)]
     pub aliases: Vec<String>,
+    /// Optional default value. When set, this value is used if no slot matches this arg.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -131,6 +138,10 @@ pub struct CallPlan {
     /// All evaluated tool candidates and their similarity scores (sorted descending).
     #[serde(default)]
     pub candidates: Vec<CandidateTool>,
+    /// When the dispatcher cannot decide (NoTool), the top-3 most likely actions
+    /// with pre-filled AL commands for the LLM or user to choose from.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suggestions: Vec<ActionSuggestion>,
 }
 
 /// A tool candidate evaluated during the tool selection phase.
@@ -140,6 +151,18 @@ pub struct CandidateTool {
     pub id: String,
     /// Cosine similarity score.
     pub score: f32,
+}
+
+/// A suggested action when the dispatcher cannot confidently select a single tool.
+/// Contains a pre-filled AL command that can be directly used by an LLM or user.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionSuggestion {
+    /// Fully-qualified action ID.
+    pub id: String,
+    /// Cosine similarity score (below threshold but closest matches).
+    pub score: f32,
+    /// Pre-filled AL command example for this action.
+    pub al_command: String,
 }
 
 /// Outcome status of a plan request.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "tools": [
+  "actions": [
     {
       "id": "Elchemista.Blog.create_post/2",
       "module": "Elchemista.Blog",
@@ -25,7 +25,7 @@
       "spec": "create_payment_link(amount :: integer(), currency :: String.t(), name :: String.t())",
       "args": [
         { "name": "amount", "type": "integer()", "required": true, "aliases": ["price","cost"] },
-        { "name": "currency", "type": "String.t()", "required": true, "aliases": ["coin"] },
+        { "name": "currency", "type": "String.t()", "required": true, "aliases": ["coin"], "default": "usd" },
         { "name": "name", "type": "String.t()", "required": true, "aliases": ["item","product_name"] }
       ],
       "examples": [

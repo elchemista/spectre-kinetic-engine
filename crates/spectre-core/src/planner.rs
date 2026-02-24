@@ -5,12 +5,14 @@
 
 use crate::al_parser;
 use crate::embed::StaticEmbedder;
+use crate::error::CoreError;
 use crate::matching::{self, SlotAssignment};
 use crate::registry::CompiledRegistry;
 use crate::similarity;
 use crate::types::{CallPlan, PlanRequest, PlanStatus};
 use ndarray::Array2;
 use std::collections::HashMap;
+use std::path::Path;
 
 /// Planning context bundled to satisfy clippy argument count limits.
 struct PlanCtx {
@@ -80,16 +82,21 @@ impl SpectreDispatcher {
             .collect();
 
         if candidates.is_empty() {
+            // Build top-3 suggestions from all tools (ignoring threshold) so the
+            // LLM or user can pick the right action.
+            let suggestions = self.build_suggestions(&sims, &parsed, 3);
+
             return CallPlan {
                 status: PlanStatus::NoTool,
                 selected_tool: None,
                 confidence: None,
                 args: None,
                 missing: Vec::new(),
-                notes: vec!["no tool matched above confidence threshold".into()],
+                notes: vec!["no action matched above confidence threshold — see suggestions".into()],
                 active_tool_threshold,
                 active_mapping_threshold,
                 candidates: eval_candidates,
+                suggestions,
             };
         }
 
@@ -141,6 +148,36 @@ impl SpectreDispatcher {
         self.plan(&req)
     }
 
+    /// Replace the in-memory registry with a new compiled registry loaded from disk.
+    pub fn set_registry(&mut self, mcr_path: &Path) -> Result<(), CoreError> {
+        let compiled = CompiledRegistry::load(mcr_path)?;
+        if compiled.dims != self.embedder.dim() {
+            return Err(CoreError::DimensionMismatch {
+                expected: self.embedder.dim(),
+                actual: compiled.dims,
+            });
+        }
+        self.registry = compiled;
+        Ok(())
+    }
+
+    /// Dynamically add an action definition to the active registry.
+    pub fn add_action(&mut self, action: crate::types::ToolDef) -> Result<(), CoreError> {
+        self.registry.add_action(&self.embedder, action)
+    }
+
+    /// Remove an action by ID from the active registry.
+    ///
+    /// Returns `Ok(true)` if an action was removed.
+    pub fn delete_action(&mut self, action_id: &str) -> Result<bool, CoreError> {
+        self.registry.delete_action(action_id)
+    }
+
+    /// Number of actions currently available in the active registry.
+    pub fn action_count(&self) -> usize {
+        self.registry.tools.len()
+    }
+
     /// Match slot keys to tool params using embedding similarity.
     fn match_slots_to_params(
         &self,
@@ -190,12 +227,16 @@ impl SpectreDispatcher {
         active_mapping_threshold: f32,
         candidates: Vec<crate::types::CandidateTool>,
     ) -> CallPlan {
-        // Check if required args are missing
+        // Apply default values for missing args
+        let mut args = slots.clone();
+        apply_defaults(&mut args, &tool.args);
+
+        // Check if required args are still missing after defaults
         let missing: Vec<String> = tool
             .args
             .iter()
             .filter(|a| a.required)
-            .filter(|a| !slots.contains_key(&a.name))
+            .filter(|a| !args.contains_key(&a.name))
             .map(|a| a.name.clone())
             .collect();
 
@@ -210,6 +251,7 @@ impl SpectreDispatcher {
                 active_tool_threshold,
                 active_mapping_threshold,
                 candidates,
+                suggestions: Vec::new(),
             };
         }
 
@@ -217,12 +259,13 @@ impl SpectreDispatcher {
             status: PlanStatus::Ok,
             selected_tool: Some(tool.id.clone()),
             confidence: Some(confidence),
-            args: Some(slots.clone()),
+            args: Some(args),
             missing: Vec::new(),
             notes: Vec::new(),
             active_tool_threshold,
             active_mapping_threshold,
             candidates,
+            suggestions: Vec::new(),
         }
     }
 
@@ -246,6 +289,7 @@ impl SpectreDispatcher {
                 active_tool_threshold: ctx.active_tool_threshold,
                 active_mapping_threshold: ctx.active_mapping_threshold,
                 candidates: ctx.candidates,
+                suggestions: Vec::new(),
             },
             Err(crate::error::PlanError::AmbiguousMapping { details }) => CallPlan {
                 status: PlanStatus::AmbiguousMapping,
@@ -257,6 +301,7 @@ impl SpectreDispatcher {
                 active_tool_threshold: ctx.active_tool_threshold,
                 active_mapping_threshold: ctx.active_mapping_threshold,
                 candidates: ctx.candidates,
+                suggestions: Vec::new(),
             },
             Err(_) => CallPlan {
                 status: PlanStatus::NoTool,
@@ -268,6 +313,7 @@ impl SpectreDispatcher {
                 active_tool_threshold: ctx.active_tool_threshold,
                 active_mapping_threshold: ctx.active_mapping_threshold,
                 candidates: ctx.candidates,
+                suggestions: Vec::new(),
             },
             Ok(assignment) => {
                 // Build args by mapping slot values through the assignment
@@ -278,7 +324,10 @@ impl SpectreDispatcher {
                     }
                 }
 
-                // Check for any required args still missing
+                // Apply default values for any args not yet bound
+                apply_defaults(&mut args, &tool.args);
+
+                // Check for any required args still missing after defaults
                 let missing: Vec<String> = tool
                     .args
                     .iter()
@@ -297,6 +346,7 @@ impl SpectreDispatcher {
                         active_tool_threshold: ctx.active_tool_threshold,
                         active_mapping_threshold: ctx.active_mapping_threshold,
                         candidates: ctx.candidates,
+                        suggestions: Vec::new(),
                     };
                 }
 
@@ -315,7 +365,56 @@ impl SpectreDispatcher {
                     active_tool_threshold: ctx.active_tool_threshold,
                     active_mapping_threshold: ctx.active_mapping_threshold,
                     candidates: ctx.candidates,
+                    suggestions: Vec::new(),
                 }
+            }
+        }
+    }
+
+    /// Build top-N suggestions with pre-filled AL commands when no tool meets the threshold.
+    fn build_suggestions(
+        &self,
+        sims: &[f32],
+        parsed: &al_parser::AlParsed,
+        n: usize,
+    ) -> Vec<crate::types::ActionSuggestion> {
+        // Get top candidates regardless of threshold (including negative scores).
+        let mut top: Vec<(usize, f32)> = sims.iter().copied().enumerate().collect();
+        top.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        top.truncate(n.min(top.len()));
+
+        top.iter()
+            .map(|&(idx, score)| {
+                let tool = &self.registry.tools[idx];
+                // Build a pre-filled AL command using the tool's args
+                let arg_slots: Vec<String> = tool
+                    .args
+                    .iter()
+                    .map(|a| format!("{}={{{}}}", a.name.to_uppercase(), a.name))
+                    .collect();
+
+                let al_command = if arg_slots.is_empty() {
+                    parsed.action_text.clone()
+                } else {
+                    format!("{} WITH: {}", parsed.action_text, arg_slots.join(" "))
+                };
+
+                crate::types::ActionSuggestion {
+                    id: tool.id.clone(),
+                    score,
+                    al_command,
+                }
+            })
+            .collect()
+    }
+}
+
+/// Apply default values from arg definitions for any args not yet in the map.
+fn apply_defaults(args: &mut HashMap<String, String>, arg_defs: &[crate::types::ArgDef]) {
+    for arg in arg_defs {
+        if !args.contains_key(&arg.name) {
+            if let Some(ref default) = arg.default {
+                args.insert(arg.name.clone(), default.clone());
             }
         }
     }

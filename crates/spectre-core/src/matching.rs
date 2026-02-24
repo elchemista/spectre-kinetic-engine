@@ -132,6 +132,7 @@ mod tests {
             arg_type: "String.t()".to_string(),
             required,
             aliases: Vec::new(),
+            default: None,
         }
     }
 

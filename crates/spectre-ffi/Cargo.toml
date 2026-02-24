@@ -19,3 +19,6 @@ anyhow = { workspace = true }
 
 # Only used when the `rustler` feature is enabled
 rustler = { version = "0.31", optional = true }
+
+[dev-dependencies]
+ndarray = { workspace = true }

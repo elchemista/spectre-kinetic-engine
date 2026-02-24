@@ -1,0 +1,328 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "id": "Elchemista.Blog.create_post/2",
+      "module": "Elchemista.Blog",
+      "name": "create_post",
+      "arity": 2,
+      "doc": "Creates a new blog post on elchemista.com with a given title and content body",
+      "spec": "create_post(title :: String.t(), body :: String.t()) :: {:ok, Post.t()} | {:error, term()}",
+      "args": [
+        { "name": "title", "type": "String.t()", "required": true, "aliases": ["headline","subject"] },
+        { "name": "body",  "type": "String.t()", "required": true, "aliases": ["content","text","post_body"] }
+      ],
+      "examples": ["WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}"]
+    },
+    {
+      "id": "Payments.Stripe.create_payment_link/1",
+      "module": "Payments.Stripe",
+      "name": "create_payment_link",
+      "arity": 3,
+      "doc": "Generates a new checkout session on Stripe for a given product name, amount, and currency",
+      "spec": "create_payment_link(amount :: integer(), currency :: String.t(), name :: String.t())",
+      "args": [
+        { "name": "amount", "type": "integer()", "required": true, "aliases": ["price","cost"] },
+        { "name": "currency", "type": "String.t()", "required": true, "aliases": ["coin"], "default": "usd" },
+        { "name": "name", "type": "String.t()", "required": true, "aliases": ["item","product_name"] }
+      ],
+      "examples": ["CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}"]
+    },
+    {
+      "id": "Linux.Apt.install/1",
+      "module": "Linux.Apt",
+      "name": "install",
+      "arity": 1,
+      "doc": "install a package using apt package manager on debian ubuntu",
+      "spec": "package: string",
+      "args": [{ "name": "package", "type": "string", "required": true, "aliases": ["pkg","software"] }],
+      "examples": ["INSTALL PACKAGE {package} VIA APT", "APT INSTALL {package}"]
+    },
+    {
+      "id": "Linux.Pacman.install/1",
+      "module": "Linux.Pacman",
+      "name": "install",
+      "arity": 1,
+      "doc": "install a package using pacman package manager on arch linux",
+      "spec": "package: string",
+      "args": [{ "name": "package", "type": "string", "required": true, "aliases": ["pkg","software"] }],
+      "examples": ["INSTALL PACKAGE {package} VIA PACMAN", "PACMAN SYNC {package}"]
+    },
+    {
+      "id": "Linux.Dnf.install/1",
+      "module": "Linux.Dnf",
+      "name": "install",
+      "arity": 1,
+      "doc": "install a package using dnf package manager on fedora rhel centos",
+      "spec": "package: string",
+      "args": [{ "name": "package", "type": "string", "required": true, "aliases": ["pkg","software"] }],
+      "examples": ["INSTALL PACKAGE {package} VIA DNF", "DNF INSTALL {package}"]
+    },
+    {
+      "id": "Linux.Coreutils.ls/1",
+      "module": "Linux.Coreutils",
+      "name": "ls",
+      "arity": 1,
+      "doc": "list directory contents files folders",
+      "spec": "path: string",
+      "args": [{ "name": "path", "type": "string", "required": true, "aliases": ["dir","directory","folder"] }],
+      "examples": ["LIST DIRECTORY {path}", "LS DIRECTORY {path}"]
+    },
+    {
+      "id": "Linux.Coreutils.rm/1",
+      "module": "Linux.Coreutils",
+      "name": "rm",
+      "arity": 1,
+      "doc": "remove delete erase file or directory",
+      "spec": "path: string",
+      "args": [{ "name": "path", "type": "string", "required": true, "aliases": ["file","target"] }],
+      "examples": ["DELETE FILE {path}", "REMOVE FILE {path}", "RM FILE {path}"]
+    },
+    {
+      "id": "Linux.Coreutils.cat/1",
+      "module": "Linux.Coreutils",
+      "name": "cat",
+      "arity": 1,
+      "doc": "read display show contents of a file",
+      "spec": "path: string",
+      "args": [{ "name": "path", "type": "string", "required": true, "aliases": ["file"] }],
+      "examples": ["READ FILE {path}", "CAT FILE {path}"]
+    },
+    {
+      "id": "Linux.Coreutils.cp/2",
+      "module": "Linux.Coreutils",
+      "name": "cp",
+      "arity": 2,
+      "doc": "copy file or directory from source to destination",
+      "spec": "source: string, dest: string",
+      "args": [
+        { "name": "source", "type": "string", "required": true, "aliases": ["src","from","origin"] },
+        { "name": "dest", "type": "string", "required": true, "aliases": ["destination","to","target"] }
+      ],
+      "examples": ["COPY FILE {source} TO {dest}", "CP {source} {dest}"]
+    },
+    {
+      "id": "Linux.Coreutils.mv/2",
+      "module": "Linux.Coreutils",
+      "name": "mv",
+      "arity": 2,
+      "doc": "move rename file or directory from source to destination",
+      "spec": "source: string, dest: string",
+      "args": [
+        { "name": "source", "type": "string", "required": true, "aliases": ["src","from","origin"] },
+        { "name": "dest", "type": "string", "required": true, "aliases": ["destination","to","target"] }
+      ],
+      "examples": ["MOVE FILE {source} TO {dest}", "RENAME FILE {source} TO {dest}", "MV {source} {dest}"]
+    },
+    {
+      "id": "Linux.Coreutils.mkdir/1",
+      "module": "Linux.Coreutils",
+      "name": "mkdir",
+      "arity": 1,
+      "doc": "create new directory folder",
+      "spec": "path: string",
+      "args": [{ "name": "path", "type": "string", "required": true, "aliases": ["dir","directory","folder"] }],
+      "examples": ["CREATE DIRECTORY {path}", "MAKE DIRECTORY {path}", "MKDIR {path}"]
+    },
+    {
+      "id": "Linux.Network.curl/2",
+      "module": "Linux.Network",
+      "name": "curl",
+      "arity": 2,
+      "doc": "download url fetch http https web page api endpoint",
+      "spec": "url: string, path: string",
+      "args": [
+        { "name": "url", "type": "string", "required": true, "aliases": ["link","endpoint","uri"] },
+        { "name": "path", "type": "string", "required": false, "aliases": ["output","dest","file"] }
+      ],
+      "examples": ["DOWNLOAD URL {url} TO FILE {path}", "CURL URL {url} TO {path}", "FETCH HTTP {url}"]
+    },
+    {
+      "id": "Linux.Network.ping/1",
+      "module": "Linux.Network",
+      "name": "ping",
+      "arity": 1,
+      "doc": "test network connectivity to host ping icmp",
+      "spec": "host: string",
+      "args": [{ "name": "host", "type": "string", "required": true, "aliases": ["server","ip","address","target"] }],
+      "examples": ["PING HOST {host}", "TEST NETWORK CONNECTIVITY TO {host}"]
+    },
+    {
+      "id": "Linux.Network.dig/1",
+      "module": "Linux.Network",
+      "name": "dig",
+      "arity": 1,
+      "doc": "dns lookup resolve domain name nslookup",
+      "spec": "domain: string",
+      "args": [{ "name": "domain", "type": "string", "required": true, "aliases": ["host","hostname","name"] }],
+      "examples": ["LOOKUP DNS FOR {domain}", "DIG DOMAIN {domain}", "RESOLVE {domain}"]
+    },
+    {
+      "id": "Linux.OpenSSH.ssh/2",
+      "module": "Linux.OpenSSH",
+      "name": "ssh",
+      "arity": 2,
+      "doc": "ssh connect login to remote server securely",
+      "spec": "host: string, user: string",
+      "args": [
+        { "name": "host", "type": "string", "required": true, "aliases": ["server","machine","remote"] },
+        { "name": "user", "type": "string", "required": false, "aliases": ["username","login"], "default": "root" }
+      ],
+      "examples": ["SSH TO HOST {host} AS USER {user}", "CONNECT REMOTELY TO {host}"]
+    },
+    {
+      "id": "Linux.Procps.kill/1",
+      "module": "Linux.Procps",
+      "name": "kill",
+      "arity": 1,
+      "doc": "kill terminate stop a running process by pid",
+      "spec": "pid: string",
+      "args": [{ "name": "pid", "type": "string", "required": true, "aliases": ["process","process_id"] }],
+      "examples": ["KILL PROCESS {pid}", "TERMINATE PROCESS {pid}", "STOP APPLICATION WITH PID {pid}"]
+    },
+    {
+      "id": "Linux.Systemd.systemctl_start/1",
+      "module": "Linux.Systemd",
+      "name": "systemctl_start",
+      "arity": 1,
+      "doc": "start enable begin a systemd service daemon",
+      "spec": "name: string",
+      "args": [{ "name": "name", "type": "string", "required": true, "aliases": ["service","daemon","unit"] }],
+      "examples": ["START SERVICE {name}", "SYSTEMCTL START {name}"]
+    },
+    {
+      "id": "Linux.Systemd.systemctl_stop/1",
+      "module": "Linux.Systemd",
+      "name": "systemctl_stop",
+      "arity": 1,
+      "doc": "stop disable halt a systemd service daemon",
+      "spec": "name: string",
+      "args": [{ "name": "name", "type": "string", "required": true, "aliases": ["service","daemon","unit"] }],
+      "examples": ["STOP SERVICE {name}", "SYSTEMCTL STOP {name}"]
+    },
+    {
+      "id": "Linux.Systemd.systemctl_restart/1",
+      "module": "Linux.Systemd",
+      "name": "systemctl_restart",
+      "arity": 1,
+      "doc": "restart reload a systemd service daemon",
+      "spec": "name: string",
+      "args": [{ "name": "name", "type": "string", "required": true, "aliases": ["service","daemon","unit"] }],
+      "examples": ["RESTART SERVICE {name}", "SYSTEMCTL RESTART {name}"]
+    },
+    {
+      "id": "Linux.Container.docker_run/2",
+      "module": "Linux.Container",
+      "name": "docker_run",
+      "arity": 2,
+      "doc": "run start deploy docker container image",
+      "spec": "image: string, args: string",
+      "args": [
+        { "name": "image", "type": "string", "required": true, "aliases": ["container","img"] },
+        { "name": "args", "type": "string", "required": false, "aliases": ["flags","options","params"], "default": "" }
+      ],
+      "examples": ["RUN DOCKER IMAGE {image} WITH ARGS {args}", "START CONTAINER FROM {image}"]
+    },
+    {
+      "id": "Linux.Vcs.git/2",
+      "module": "Linux.Vcs",
+      "name": "git",
+      "arity": 2,
+      "doc": "run git version control command commit push pull clone",
+      "spec": "command: string, args: string",
+      "args": [
+        { "name": "command", "type": "string", "required": true, "aliases": ["cmd","subcommand"] },
+        { "name": "args", "type": "string", "required": false, "aliases": ["flags","options"], "default": "" }
+      ],
+      "examples": ["RUN GIT {command} WITH ARGS {args}", "COMMIT CODE CHANGES WITH GIT {command}"]
+    },
+    {
+      "id": "Linux.Archive.tar/2",
+      "module": "Linux.Archive",
+      "name": "tar",
+      "arity": 2,
+      "doc": "compress archive tar gzip directory files",
+      "spec": "path: string, archive: string",
+      "args": [
+        { "name": "path", "type": "string", "required": true, "aliases": ["dir","source","directory","folder"] },
+        { "name": "archive", "type": "string", "required": true, "aliases": ["output","dest","file","tarball"] }
+      ],
+      "examples": ["COMPRESS DIRECTORY {path} INTO FILE {archive}", "TAR AND GZIP FOLDER {path} TO {archive}"]
+    },
+    {
+      "id": "Linux.Coreutils.grep/2",
+      "module": "Linux.Coreutils",
+      "name": "grep",
+      "arity": 2,
+      "doc": "search text pattern string inside files grep ripgrep",
+      "spec": "pattern: string, file: string",
+      "args": [
+        { "name": "pattern", "type": "string", "required": true, "aliases": ["text","query","search","string"] },
+        { "name": "file", "type": "string", "required": true, "aliases": ["path","target","input"] }
+      ],
+      "examples": ["SEARCH TEXT {pattern} IN FILE {file}", "FIND STRING {pattern} INSIDE {file}"]
+    },
+    {
+      "id": "Linux.Coreutils.chmod/2",
+      "module": "Linux.Coreutils",
+      "name": "chmod",
+      "arity": 2,
+      "doc": "change file permissions mode executable readable writable",
+      "spec": "path: string, mode: string",
+      "args": [
+        { "name": "path", "type": "string", "required": true, "aliases": ["file","target"] },
+        { "name": "mode", "type": "string", "required": true, "aliases": ["permissions","perm"] }
+      ],
+      "examples": ["CHMOD FILE {path} TO {mode}", "CHANGE PERMISSIONS OF {path} TO {mode}"]
+    },
+    {
+      "id": "Linux.User.useradd/1",
+      "module": "Linux.User",
+      "name": "useradd",
+      "arity": 1,
+      "doc": "create add new user account on the system",
+      "spec": "username: string",
+      "args": [{ "name": "username", "type": "string", "required": true, "aliases": ["user","name","login"] }],
+      "examples": ["CREATE NEW USER {username}", "ADD SYSTEM USER {username}"]
+    },
+    {
+      "id": "Linux.Findutils.find/2",
+      "module": "Linux.Findutils",
+      "name": "find",
+      "arity": 2,
+      "doc": "find search locate files by name in directory tree",
+      "spec": "name: string, path: string",
+      "args": [
+        { "name": "name", "type": "string", "required": true, "aliases": ["filename","pattern","query"] },
+        { "name": "path", "type": "string", "required": true, "aliases": ["dir","directory","folder"] }
+      ],
+      "examples": ["FIND FILE {name} IN DIRECTORY {path}", "SEARCH DIRECTORY {path} FOR {name}"]
+    },
+    {
+      "id": "Linux.Lang.python/2",
+      "module": "Linux.Lang",
+      "name": "python",
+      "arity": 2,
+      "doc": "run execute python script program",
+      "spec": "script: string, args: string",
+      "args": [
+        { "name": "script", "type": "string", "required": true, "aliases": ["file","program","path"] },
+        { "name": "args", "type": "string", "required": false, "aliases": ["flags","options","params"], "default": "" }
+      ],
+      "examples": ["RUN PYTHON SCRIPT {script} WITH {args}", "EXECUTE PYTHON PROGRAM {script}"]
+    },
+    {
+      "id": "Linux.Network.rsync/2",
+      "module": "Linux.Network",
+      "name": "rsync",
+      "arity": 2,
+      "doc": "sync backup copy files directories remote rsync",
+      "spec": "source: string, dest: string",
+      "args": [
+        { "name": "source", "type": "string", "required": true, "aliases": ["src","from","origin"] },
+        { "name": "dest", "type": "string", "required": true, "aliases": ["destination","to","target"] }
+      ],
+      "examples": ["SYNC DIRECTORY {source} WITH {dest}", "RSYNC {source} TO {dest}", "BACKUP FILES FROM {source} TO {dest}"]
+    }
+  ]
+}
