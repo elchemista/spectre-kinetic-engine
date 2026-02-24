@@ -4,6 +4,7 @@ members = [
     "crates/spectre-core",
     "crates/spectre-train",
     "crates/spectre-cli",
+    "crates/spectre-ffi",
 ]
 
 [workspace.lints.clippy]

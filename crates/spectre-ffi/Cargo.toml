@@ -1,0 +1,21 @@
+[package]
+name = "spectre-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "C ABI and Rustler bindings for spectre-core"
+
+[lib]
+name = "spectre_ffi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[features]
+rustler = ["dep:rustler"]
+
+[dependencies]
+spectre-core = { path = "../spectre-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+# Only used when the `rustler` feature is enabled
+rustler = { version = "0.30", optional = true }
