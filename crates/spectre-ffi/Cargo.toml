@@ -18,7 +18,7 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 
 # Only used when the `rustler` feature is enabled
-rustler = { version = "0.31", optional = true }
+rustler = { version = "0.37", optional = true }
 
 [dev-dependencies]
 ndarray = { workspace = true }

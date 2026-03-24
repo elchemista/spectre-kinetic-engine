@@ -6,6 +6,9 @@ pub struct FfiHandle {
     dispatcher: spectre_core::SpectreDispatcher,
 }
 
+#[cfg(feature = "rustler")]
+mod rustler;
+
 /// # Safety
 ///
 /// - `handle` must be a valid pointer returned by `spectre_open`.
@@ -432,86 +435,5 @@ mod tests {
             .expect("system time before epoch")
             .as_nanos();
         std::env::temp_dir().join(format!("{}_{}.{}", prefix, nanos, ext))
-    }
-}
-
-#[cfg(feature = "rustler")]
-mod nif {
-    use super::*;
-    use rustler::{Env, NifResult, ResourceArc, Term};
-    use std::sync::Mutex;
-
-    struct NifHandle(Mutex<FfiHandle>);
-
-    rustler::init!(
-        "Elixir.Spectre.FFI",
-        [open, plan_json, plan_al, plan, add_action, delete_action, load_registry],
-        load = on_load
-    );
-
-    fn on_load(env: Env, _info: Term) -> bool {
-        rustler::resource!(NifHandle, env);
-        true
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn open(model_dir: String, registry_mcr: String) -> NifResult<ResourceArc<NifHandle>> {
-        let (_meta, embedder) = spectre_core::pack::load_pack(Path::new(&model_dir))
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        let compiled = spectre_core::CompiledRegistry::load(Path::new(&registry_mcr))
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        let dispatcher = spectre_core::SpectreDispatcher::new(embedder, compiled);
-        Ok(ResourceArc::new(NifHandle(Mutex::new(FfiHandle { dispatcher }))))
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn plan_json(handle: ResourceArc<NifHandle>, request_json: String) -> NifResult<String> {
-        let request: spectre_core::PlanRequest =
-            serde_json::from_str(&request_json).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        let h = handle.0.lock().unwrap();
-        let call_plan = h.dispatcher.plan(&request);
-        serde_json::to_string(&call_plan).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn plan_al(handle: ResourceArc<NifHandle>, al_text: String) -> NifResult<String> {
-        let h = handle.0.lock().unwrap();
-        let call_plan = h.dispatcher.plan_al(&al_text, None, None, None);
-        serde_json::to_string(&call_plan).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn plan(handle: ResourceArc<NifHandle>, al_text: String) -> NifResult<String> {
-        let h = handle.0.lock().unwrap();
-        let call_plan = h.dispatcher.plan_al(&al_text, None, None, None);
-        serde_json::to_string(&call_plan).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn add_action(handle: ResourceArc<NifHandle>, action_json: String) -> NifResult<bool> {
-        let action: spectre_core::types::ToolDef =
-            serde_json::from_str(&action_json).map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        let mut h = handle.0.lock().unwrap();
-        h.dispatcher
-            .add_action(action)
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        Ok(true)
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn delete_action(handle: ResourceArc<NifHandle>, action_id: String) -> NifResult<bool> {
-        let mut h = handle.0.lock().unwrap();
-        h.dispatcher
-            .delete_action(&action_id)
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))
-    }
-
-    #[rustler::nif(schedule = "DirtyCpu")]
-    fn load_registry(handle: ResourceArc<NifHandle>, registry_mcr: String) -> NifResult<bool> {
-        let mut h = handle.0.lock().unwrap();
-        h.dispatcher
-            .set_registry(Path::new(&registry_mcr))
-            .map_err(|e| rustler::Error::Term(Box::new(format!("{}", e))))?;
-        Ok(true)
     }
 }

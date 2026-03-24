@@ -187,6 +187,8 @@ The LLM can read the suggestions and pick the right one, or ask the user for cla
 - **spectre-kinetic** — CLI with `train`, `build-registry`, `plan`, and `extract-dict` subcommands.
 - **spectre-ffi** — C ABI library and optional Rustler NIF bindings for Elixir.
 
+For a clean Elixir host integration that still keeps the Rust core framework-agnostic, see [docs/elixir-integration.md](docs/elixir-integration.md).
+
 All crates are deterministic and dependency-light.
 
 ---
@@ -571,6 +573,10 @@ Elixir (Rustler feature): add a Rustler crate entry pointing to `crates/spectre-
 - `Spectre.FFI.add_action(handle, action_json) :: boolean`
 - `Spectre.FFI.delete_action(handle, action_id) :: boolean`
 - `Spectre.FFI.load_registry(handle, registry_mcr) :: boolean`
+- `Spectre.FFI.action_count(handle) :: non_neg_integer`
+- `Spectre.FFI.version() :: String`
+
+The Rustler bindings live in `crates/spectre-ffi/src/rustler.rs`, so an Elixir module only needs to load the NIF and define matching stub functions.
 
 ---
 
