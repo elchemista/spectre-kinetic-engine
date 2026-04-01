@@ -2,6 +2,7 @@
 
 use spectre_core::types::{ArgDef, ToolDef, ToolMeta};
 use spectre_core::{CompiledRegistry, SpectreDispatcher};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn load_dispatcher() -> SpectreDispatcher {
@@ -34,12 +35,70 @@ fn dynamic_action() -> ToolDef {
     }
 }
 
+fn email_action() -> ToolDef {
+    ToolDef {
+        id: "Dynamic.Email.send/2".to_string(),
+        module: "Dynamic.Email".to_string(),
+        name: "send".to_string(),
+        arity: 2,
+        doc: "Send a message to an email recipient".to_string(),
+        spec: "send(to :: String.t(), body :: String.t()) :: :ok".to_string(),
+        args: vec![
+            ArgDef {
+                name: "to".to_string(),
+                arg_type: "String.t()".to_string(),
+                required: true,
+                aliases: vec!["recipient".to_string(), "email".to_string()],
+                default: None,
+            },
+            ArgDef {
+                name: "body".to_string(),
+                arg_type: "String.t()".to_string(),
+                required: true,
+                aliases: vec!["message".to_string(), "text".to_string()],
+                default: None,
+            },
+        ],
+        examples: vec!["SEND MESSAGE WITH: TO={to} BODY={body}".to_string()],
+    }
+}
+
+fn sms_action() -> ToolDef {
+    ToolDef {
+        id: "Dynamic.Sms.send/2".to_string(),
+        module: "Dynamic.Sms".to_string(),
+        name: "send".to_string(),
+        arity: 2,
+        doc: "Send a message to a phone recipient".to_string(),
+        spec: "send(to :: String.t(), body :: String.t()) :: :ok".to_string(),
+        args: vec![
+            ArgDef {
+                name: "to".to_string(),
+                arg_type: "String.t()".to_string(),
+                required: true,
+                aliases: vec!["recipient".to_string(), "phone".to_string(), "number".to_string()],
+                default: None,
+            },
+            ArgDef {
+                name: "body".to_string(),
+                arg_type: "String.t()".to_string(),
+                required: true,
+                aliases: vec!["message".to_string(), "text".to_string()],
+                default: None,
+            },
+        ],
+        examples: vec!["SEND MESSAGE WITH: TO={to} BODY={body}".to_string()],
+    }
+}
+
 #[test]
 fn add_action_then_delete_action_updates_registry_size() {
     let mut dispatcher = load_dispatcher();
     let base = dispatcher.action_count();
 
-    dispatcher.add_action(dynamic_action()).expect("add_action should succeed");
+    dispatcher
+        .add_action(dynamic_action())
+        .expect("add_action should succeed");
     assert_eq!(dispatcher.action_count(), base + 1);
 
     let duplicate = dispatcher.add_action(dynamic_action());
@@ -61,12 +120,16 @@ fn add_action_then_delete_action_updates_registry_size() {
 fn set_registry_swaps_registry_from_disk() {
     let mut dispatcher = load_dispatcher();
 
-    dispatcher.add_action(dynamic_action()).expect("add_action should succeed");
+    dispatcher
+        .add_action(dynamic_action())
+        .expect("add_action should succeed");
     let expanded = dispatcher.action_count();
 
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let registry_path = manifest.join("tests/test_registry.mcr");
-    dispatcher.set_registry(&registry_path).expect("set_registry should succeed");
+    dispatcher
+        .set_registry(&registry_path)
+        .expect("set_registry should succeed");
 
     assert!(dispatcher.action_count() < expanded);
 }
@@ -100,6 +163,52 @@ fn set_registry_rejects_dimension_mismatch() {
     let _ = std::fs::remove_file(&path);
 
     assert!(matches!(result, Err(spectre_core::CoreError::DimensionMismatch { .. })));
+}
+
+#[test]
+fn reranking_prefers_email_for_email_like_recipient_values() {
+    let mut dispatcher = load_dispatcher();
+    dispatcher.add_action(email_action()).expect("add email action");
+    dispatcher.add_action(sms_action()).expect("add sms action");
+
+    let plan = dispatcher.plan(&spectre_core::types::PlanRequest {
+        al: "SEND MESSAGE WITH: TO=\"dev@example.com\" BODY=\"hello\"".to_string(),
+        slots: HashMap::from([
+            ("to".to_string(), "dev@example.com".to_string()),
+            ("body".to_string(), "hello".to_string()),
+        ]),
+        top_k: 5,
+        tool_threshold: Some(0.0),
+        mapping_threshold: Some(0.0),
+    });
+
+    assert_eq!(plan.selected_tool.as_deref(), Some("Dynamic.Email.send/2"));
+    assert!(plan.tool_score.unwrap_or_default() > 0.0);
+    assert!(plan.mapping_score.unwrap_or_default() > 0.0);
+    assert_eq!(plan.confidence, plan.combined_score);
+}
+
+#[test]
+fn reranking_prefers_sms_for_phone_like_recipient_values() {
+    let mut dispatcher = load_dispatcher();
+    dispatcher.add_action(email_action()).expect("add email action");
+    dispatcher.add_action(sms_action()).expect("add sms action");
+
+    let plan = dispatcher.plan(&spectre_core::types::PlanRequest {
+        al: "SEND MESSAGE WITH: TO=\"+15551234567\" BODY=\"hello\"".to_string(),
+        slots: HashMap::from([
+            ("to".to_string(), "+15551234567".to_string()),
+            ("body".to_string(), "hello".to_string()),
+        ]),
+        top_k: 5,
+        tool_threshold: Some(0.0),
+        mapping_threshold: Some(0.0),
+    });
+
+    assert_eq!(plan.selected_tool.as_deref(), Some("Dynamic.Sms.send/2"));
+    assert!(plan.tool_score.unwrap_or_default() > 0.0);
+    assert!(plan.mapping_score.unwrap_or_default() > 0.0);
+    assert_eq!(plan.confidence, plan.combined_score);
 }
 
 fn unique_temp_path(prefix: &str, ext: &str) -> PathBuf {

@@ -119,9 +119,21 @@ pub struct CallPlan {
     /// The selected tool ID (present when status is Ok).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selected_tool: Option<String>,
-    /// Cosine similarity confidence score for the selected tool.
+    /// Overall confidence score for the selected tool.
+    ///
+    /// This remains for backward compatibility and mirrors `combined_score`
+    /// when a tool is selected.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub confidence: Option<f32>,
+    /// Raw action-text similarity score for the selected tool.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_score: Option<f32>,
+    /// Aggregate slot-fit score for the selected tool.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mapping_score: Option<f32>,
+    /// Final late-fusion score used for selection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub combined_score: Option<f32>,
     /// Bound arguments (param_name -> value) after slot-to-param mapping.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub args: Option<HashMap<String, String>>,
@@ -135,7 +147,7 @@ pub struct CallPlan {
     pub active_tool_threshold: f32,
     /// Slot mapping similarity threshold that was applied (useful for tuning).
     pub active_mapping_threshold: f32,
-    /// All evaluated tool candidates and their similarity scores (sorted descending).
+    /// All evaluated tool candidates, sorted by descending `combined_score`.
     #[serde(default)]
     pub candidates: Vec<CandidateTool>,
     /// When the dispatcher cannot decide (NoTool), the top-3 most likely actions
@@ -149,8 +161,17 @@ pub struct CallPlan {
 pub struct CandidateTool {
     /// Fully-qualified tool ID.
     pub id: String,
-    /// Cosine similarity score.
+    /// Final late-fusion score used for reranking.
     pub score: f32,
+    /// Raw action-text similarity score.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_score: Option<f32>,
+    /// Aggregate slot-fit score.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mapping_score: Option<f32>,
+    /// Final late-fusion score.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub combined_score: Option<f32>,
 }
 
 /// A suggested action when the dispatcher cannot confidently select a single tool.
