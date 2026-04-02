@@ -64,10 +64,8 @@ impl TeacherModel {
 
         let seq_len = input_ids[0].len();
 
-        let ids_tensor =
-            self.build_tensor(input_ids, batch_size, seq_len, "input_ids")?;
-        let mask_tensor =
-            self.build_tensor(attention_mask, batch_size, seq_len, "attention_mask")?;
+        let ids_tensor = self.build_tensor(input_ids, batch_size, seq_len, "input_ids")?;
+        let mask_tensor = self.build_tensor(attention_mask, batch_size, seq_len, "attention_mask")?;
 
         let type_ids_flat: Vec<i64> = vec![0i64; batch_size * seq_len];
         let type_tensor = Tensor::from_array(([batch_size, seq_len], type_ids_flat))
@@ -100,13 +98,7 @@ impl TeacherModel {
         // SessionOutputs borrow ends here when dropped
         drop(outputs);
 
-        let results = self.collect_token_embeddings(
-            &data,
-            input_ids,
-            attention_mask,
-            batch_size,
-            seq_len,
-        )?;
+        let results = self.collect_token_embeddings(&data, input_ids, attention_mask, batch_size, seq_len)?;
 
         Ok(results)
     }
@@ -120,8 +112,7 @@ impl TeacherModel {
         name: &str,
     ) -> Result<Tensor<i64>, TrainError> {
         let flat: Vec<i64> = seqs.iter().flat_map(|s| s.iter().copied()).collect();
-        Tensor::from_array(([batch_size, seq_len], flat))
-            .map_err(|e| TrainError::Onnx(format!("{name} tensor: {e}")))
+        Tensor::from_array(([batch_size, seq_len], flat)).map_err(|e| TrainError::Onnx(format!("{name} tensor: {e}")))
     }
 
     /// Collect (token_id, embedding) pairs from the raw output slice.

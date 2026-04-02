@@ -51,9 +51,12 @@ mod tests {
         let matrix = Array2::from_shape_vec(
             (3, 2),
             vec![
-                1.0, 0.0, // row 0: pointing right
-                0.0, 1.0, // row 1: pointing up
-                std::f32::consts::FRAC_1_SQRT_2, std::f32::consts::FRAC_1_SQRT_2, // row 2: 45 degrees
+                1.0,
+                0.0, // row 0: pointing right
+                0.0,
+                1.0, // row 1: pointing up
+                std::f32::consts::FRAC_1_SQRT_2,
+                std::f32::consts::FRAC_1_SQRT_2, // row 2: 45 degrees
             ],
         )
         .unwrap();

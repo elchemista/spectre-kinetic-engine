@@ -6,10 +6,7 @@ use std::sync::Mutex;
 struct NifHandle(Mutex<FfiHandle>);
 impl rustler::Resource for NifHandle {}
 
-rustler::init!(
-    "Elixir.Spectre.FFI",
-    load = on_load
-);
+rustler::init!("Elixir.Spectre.FFI", load = on_load);
 
 fn on_load(env: Env, _info: Term) -> bool {
     env.register::<NifHandle>().is_ok()

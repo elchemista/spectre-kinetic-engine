@@ -24,10 +24,8 @@ fn dispatcher() -> &'static SpectreDispatcher {
         let pack_dir = manifest.join("../../packs/minilm");
         let registry_path = manifest.join("tests/test_registry.mcr");
 
-        let (_meta, embedder) =
-            spectre_core::pack::load_pack(&pack_dir).expect("failed to load model pack");
-        let compiled =
-            CompiledRegistry::load(&registry_path).expect("failed to load test registry");
+        let (_meta, embedder) = spectre_core::pack::load_pack(&pack_dir).expect("failed to load model pack");
+        let compiled = CompiledRegistry::load(&registry_path).expect("failed to load test registry");
 
         SpectreDispatcher::new(embedder, compiled)
     })
@@ -47,11 +45,7 @@ struct TestCase {
 
 fn run_test(tc: &TestCase) {
     let d = dispatcher();
-    let slots: HashMap<String, String> = tc
-        .slots
-        .iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
+    let slots: HashMap<String, String> = tc.slots.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
 
     let plan = d.plan(&PlanRequest {
         al: tc.al.to_string(),
@@ -72,7 +66,11 @@ fn run_test(tc: &TestCase) {
         selected,
         confidence,
         plan.status,
-        plan.candidates.iter().take(3).map(|c| format!("{} ({:.3})", c.id, c.score)).collect::<Vec<_>>(),
+        plan.candidates
+            .iter()
+            .take(3)
+            .map(|c| format!("{} ({:.3})", c.id, c.score))
+            .collect::<Vec<_>>(),
     );
 
     assert_eq!(
@@ -129,10 +127,7 @@ fn blog_post_with_literal_values() {
         "\n  blog_post_literal: selected={:?} confidence={:?}",
         plan.selected_tool, plan.confidence
     );
-    assert_eq!(
-        plan.selected_tool.as_deref(),
-        Some("Elchemista.Blog.create_post/2")
-    );
+    assert_eq!(plan.selected_tool.as_deref(), Some("Elchemista.Blog.create_post/2"));
 }
 
 #[test]
@@ -701,10 +696,7 @@ fn messy_blog_post() {
         "\n  messy_blog: selected={:?} confidence={:?} args={:?}",
         plan.selected_tool, plan.confidence, plan.args
     );
-    assert_eq!(
-        plan.selected_tool.as_deref(),
-        Some("Elchemista.Blog.create_post/2")
-    );
+    assert_eq!(plan.selected_tool.as_deref(), Some("Elchemista.Blog.create_post/2"));
 }
 
 #[test]
@@ -786,8 +778,7 @@ fn default_value_for_currency() {
     );
     // The currency arg should be filled from the default "usd"
     if let Some(ref args) = plan.args {
-        let has_currency = args.get("currency").map(|v| v.as_str()) == Some("usd")
-            || args.values().any(|v| v == "usd");
+        let has_currency = args.get("currency").map(|v| v.as_str()) == Some("usd") || args.values().any(|v| v == "usd");
         eprintln!("  args map: {:?}", args);
         // Note: whether default appears depends on slot mapping — log for diagnostics
         if has_currency {
@@ -804,8 +795,14 @@ fn default_value_for_currency() {
 fn score_report() {
     let cases: Vec<(&str, &str)> = vec![
         // Blog / API
-        ("WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}", "Elchemista.Blog.create_post/2"),
-        ("CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}", "Payments.Stripe.create_payment_link/1"),
+        (
+            "WRITE NEW BLOG POST FOR elchemista.com WITH: TITLE={title} TEXT={text}",
+            "Elchemista.Blog.create_post/2",
+        ),
+        (
+            "CREATE STRIPE PAYMENT LINK WITH: AMOUNT={amount} CURRENCY={currency} PRODUCT_NAME={name}",
+            "Payments.Stripe.create_payment_link/1",
+        ),
         // Package managers
         ("INSTALL PACKAGE {package} VIA APT", "Linux.Apt.install/1"),
         ("APT INSTALL {package}", "Linux.Apt.install/1"),
@@ -840,7 +837,10 @@ fn score_report() {
         ("STOP SERVICE {name}", "Linux.Systemd.systemctl_stop/1"),
         ("RESTART SERVICE {name}", "Linux.Systemd.systemctl_restart/1"),
         // Docker
-        ("RUN DOCKER IMAGE {image} WITH ARGS {args}", "Linux.Container.docker_run/2"),
+        (
+            "RUN DOCKER IMAGE {image} WITH ARGS {args}",
+            "Linux.Container.docker_run/2",
+        ),
         // Git
         ("RUN GIT {command} WITH ARGS {args}", "Linux.Vcs.git/2"),
         // Archive
@@ -913,9 +913,5 @@ fn score_report() {
     eprintln!("{}", "=".repeat(85));
 
     // We expect at least 80% accuracy
-    assert!(
-        accuracy >= 80.0,
-        "accuracy {:.1}% is below 80% threshold",
-        accuracy
-    );
+    assert!(accuracy >= 80.0, "accuracy {:.1}% is below 80% threshold", accuracy);
 }
