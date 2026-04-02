@@ -142,6 +142,7 @@ impl SpectreDispatcher {
                 self.evaluate_candidate(
                     tool_idx,
                     tool_score,
+                    &request.al,
                     &slot_keys,
                     &normalized_slots,
                     active_mapping_threshold,
@@ -245,6 +246,7 @@ impl SpectreDispatcher {
         &self,
         tool_idx: usize,
         tool_score: f32,
+        al_text: &str,
         slot_keys: &[ParsedSlot],
         slots: &HashMap<String, String>,
         mapping_threshold: f32,
@@ -263,6 +265,11 @@ impl SpectreDispatcher {
             }
         }
 
+        let recovered_args = recover_direct_args_from_text(al_text, tool, &args);
+        for (param_name, value) in &recovered_args {
+            args.entry(param_name.clone()).or_insert_with(|| value.clone());
+        }
+
         apply_defaults(&mut args, &tool.args);
 
         let missing: Vec<String> = tool
@@ -275,6 +282,11 @@ impl SpectreDispatcher {
         let mut notes = Vec::new();
         if !assignment.unmatched_slots.is_empty() {
             notes.push(format!("unmatched slots: {:?}", assignment.unmatched_slots));
+        }
+        if !recovered_args.is_empty() {
+            let mut recovered_keys: Vec<String> = recovered_args.keys().cloned().collect();
+            recovered_keys.sort();
+            notes.push(format!("recovered inline args: {:?}", recovered_keys));
         }
         notes.extend(assignment.ambiguity_notes.iter().cloned());
 
@@ -644,6 +656,209 @@ fn push_shape(shapes: &mut Vec<ValueShape>, shape: ValueShape) {
 
 fn clamp_score(score: f32) -> f32 {
     score.clamp(0.0, 1.0)
+}
+
+fn recover_direct_args_from_text(
+    al_text: &str,
+    tool: &crate::types::ToolMeta,
+    existing_args: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    let known_labels = known_arg_labels(tool);
+    let mut recovered = HashMap::new();
+
+    for arg in &tool.args {
+        if existing_args.contains_key(&arg.name) {
+            continue;
+        }
+
+        if let Some(value) = find_arg_value_in_text(al_text, arg, &known_labels) {
+            recovered.insert(arg.name.clone(), value);
+        }
+    }
+
+    recovered
+}
+
+fn known_arg_labels(tool: &crate::types::ToolMeta) -> Vec<String> {
+    let mut labels = Vec::new();
+
+    for arg in &tool.args {
+        for label in candidate_labels(arg) {
+            if !labels.contains(&label) {
+                labels.push(label);
+            }
+        }
+    }
+
+    labels
+}
+
+fn candidate_labels(arg: &crate::types::ArgDef) -> Vec<String> {
+    let mut labels = Vec::new();
+
+    let canonical = arg.name.trim().to_lowercase();
+    if !canonical.is_empty() {
+        labels.push(canonical);
+    }
+
+    for alias in &arg.aliases {
+        let alias = alias.trim().to_lowercase();
+        if !alias.is_empty() && !labels.contains(&alias) {
+            labels.push(alias);
+        }
+    }
+
+    labels
+}
+
+fn find_arg_value_in_text(text: &str, arg: &crate::types::ArgDef, known_labels: &[String]) -> Option<String> {
+    for label in candidate_labels(arg) {
+        if let Some(value) = find_arg_value_for_label(text, &label, known_labels, true) {
+            return Some(value);
+        }
+    }
+
+    for label in candidate_labels(arg) {
+        if let Some(value) = find_arg_value_for_label(text, &label, known_labels, false) {
+            return Some(value);
+        }
+    }
+
+    None
+}
+
+fn find_arg_value_for_label(text: &str, label: &str, known_labels: &[String], explicit_only: bool) -> Option<String> {
+    let bytes = text.as_bytes();
+    let label_bytes = label.as_bytes();
+    let mut i = 0;
+
+    while i < bytes.len() {
+        while i < bytes.len() && !is_label_char(bytes[i]) {
+            i += 1;
+        }
+        if i >= bytes.len() {
+            break;
+        }
+
+        let start = i;
+        while i < bytes.len() && is_label_char(bytes[i]) {
+            i += 1;
+        }
+        let end = i;
+
+        if token_eq_ignore_ascii_case(&bytes[start..end], label_bytes) {
+            if let Some(value) = read_labeled_value(text, end, known_labels, explicit_only) {
+                return Some(value);
+            }
+        }
+    }
+
+    None
+}
+
+fn read_labeled_value(text: &str, start: usize, known_labels: &[String], explicit_only: bool) -> Option<String> {
+    let bytes = text.as_bytes();
+    let cursor = skip_ascii_whitespace(bytes, start);
+    if cursor >= bytes.len() {
+        return None;
+    }
+
+    if matches!(bytes[cursor], b'=' | b':') {
+        let value_start = skip_ascii_whitespace(bytes, cursor + 1);
+        return read_inline_value(text, value_start, false, known_labels);
+    }
+
+    if !explicit_only && cursor > start {
+        return read_inline_value(text, cursor, true, known_labels);
+    }
+
+    None
+}
+
+fn read_inline_value(text: &str, start: usize, space_separated: bool, known_labels: &[String]) -> Option<String> {
+    let bytes = text.as_bytes();
+    if start >= bytes.len() {
+        return None;
+    }
+
+    let value = match bytes[start] {
+        b'"' | b'\'' => {
+            let quote = bytes[start];
+            let mut end = start + 1;
+            while end < bytes.len() && bytes[end] != quote {
+                end += 1;
+            }
+            text[start + 1..end.min(bytes.len())].trim().to_string()
+        }
+        b'{' => {
+            let mut end = start + 1;
+            while end < bytes.len() && bytes[end] != b'}' {
+                end += 1;
+            }
+            text[start + 1..end.min(bytes.len())].trim().to_string()
+        }
+        _ => {
+            let mut end = start;
+            while end < bytes.len() && !bytes[end].is_ascii_whitespace() && !matches!(bytes[end], b',' | b';') {
+                end += 1;
+            }
+            strip_inline_punctuation(text[start..end].trim()).to_string()
+        }
+    };
+
+    if value.is_empty() {
+        return None;
+    }
+
+    if space_separated && is_known_label(value.as_str(), known_labels) {
+        return None;
+    }
+
+    if space_separated && is_loose_value_stopword(value.as_str()) {
+        return None;
+    }
+
+    Some(value)
+}
+
+fn skip_ascii_whitespace(bytes: &[u8], mut index: usize) -> usize {
+    while index < bytes.len() && bytes[index].is_ascii_whitespace() {
+        index += 1;
+    }
+    index
+}
+
+fn is_label_char(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
+fn token_eq_ignore_ascii_case(token: &[u8], label: &[u8]) -> bool {
+    token.len() == label.len()
+        && token
+            .iter()
+            .zip(label.iter())
+            .all(|(left, right)| left.eq_ignore_ascii_case(right))
+}
+
+fn strip_inline_punctuation(token: &str) -> &str {
+    let trimmed = if token.contains("://") {
+        token.trim_end_matches([';', ',', '.'])
+    } else {
+        token.trim_end_matches([';', ',', '.', ':'])
+    };
+
+    trimmed.trim_start_matches([';', ',', ':'])
+}
+
+fn is_known_label(token: &str, known_labels: &[String]) -> bool {
+    known_labels.iter().any(|label| label.eq_ignore_ascii_case(token))
+}
+
+fn is_loose_value_stopword(token: &str) -> bool {
+    matches!(
+        token.to_ascii_lowercase().as_str(),
+        "with" | "via" | "using" | "into" | "onto" | "in" | "on" | "at" | "by" | "for" | "as" | "and" | "or"
+    )
 }
 
 /// Apply default values from arg definitions for any args not yet in the map.

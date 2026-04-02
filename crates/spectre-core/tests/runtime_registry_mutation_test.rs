@@ -211,6 +211,56 @@ fn reranking_prefers_sms_for_phone_like_recipient_values() {
     assert_eq!(plan.confidence, plan.combined_score);
 }
 
+#[test]
+fn plan_al_recovers_inline_email_recipient_without_with_section() {
+    let mut dispatcher = load_dispatcher();
+    dispatcher.add_action(email_action()).expect("add email action");
+
+    let plan = dispatcher.plan_al("SEND ME EMAIL to yuriy.zhar@gmail.com", None, Some(0.0), Some(0.0));
+
+    assert_eq!(plan.selected_tool.as_deref(), Some("Dynamic.Email.send/2"));
+    assert_eq!(
+        plan.args.as_ref().and_then(|args| args.get("to")).map(|s| s.as_str()),
+        Some("yuriy.zhar@gmail.com")
+    );
+    assert!(!plan.missing.iter().any(|arg| arg == "to"));
+    assert!(
+        plan.notes.iter().any(|note| note.contains("recovered inline args")),
+        "expected planner notes to mention inline arg recovery, got {:?}",
+        plan.notes
+    );
+}
+
+#[test]
+fn plan_al_recovers_inline_email_recipient_with_colon_separator() {
+    let mut dispatcher = load_dispatcher();
+    dispatcher.add_action(email_action()).expect("add email action");
+
+    let plan = dispatcher.plan_al("SEND ME EMAIL TO: yuriy.zhar@gmail.com", None, Some(0.0), Some(0.0));
+
+    assert_eq!(plan.selected_tool.as_deref(), Some("Dynamic.Email.send/2"));
+    assert_eq!(
+        plan.args.as_ref().and_then(|args| args.get("to")).map(|s| s.as_str()),
+        Some("yuriy.zhar@gmail.com")
+    );
+    assert!(!plan.missing.iter().any(|arg| arg == "to"));
+}
+
+#[test]
+fn plan_al_recovers_inline_email_recipient_with_equals_separator() {
+    let mut dispatcher = load_dispatcher();
+    dispatcher.add_action(email_action()).expect("add email action");
+
+    let plan = dispatcher.plan_al("SEND ME EMAIL TO=yuriy.zhar@gmail.com", None, Some(0.0), Some(0.0));
+
+    assert_eq!(plan.selected_tool.as_deref(), Some("Dynamic.Email.send/2"));
+    assert_eq!(
+        plan.args.as_ref().and_then(|args| args.get("to")).map(|s| s.as_str()),
+        Some("yuriy.zhar@gmail.com")
+    );
+    assert!(!plan.missing.iter().any(|arg| arg == "to"));
+}
+
 fn unique_temp_path(prefix: &str, ext: &str) -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
